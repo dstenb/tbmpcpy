@@ -1,0 +1,86 @@
+#!/usr/bin/python
+# -*- encoding: utf-8 -*-
+
+import termbox
+
+SPACE = u" "
+HLINE = u"─"
+
+
+class Drawable:
+
+    def __init__(self, tb):
+        self.tb = tb
+        self.set_dim(0, 0, 0, 0)
+        self.set_pref_dim(-1, -1)
+
+    def change_cell(self, x, y, c, fg, bg):
+        if self.x + x < self.tb.width() and self.y + y < self.tb.height():
+            self.tb.change_cell(self.x + x, self.y + y, c, fg, bg)
+
+    def draw(self):
+        self
+
+    def get_dim(self):
+        return [x, y, w, h]
+
+    def set_dim(self, x, y, w, h):
+        self.x = x
+        self.y = y
+        self.w = w
+        self.h = h
+
+    def set_pref_dim(self, w, h):
+        self.prefw = w
+        self.prefh = h
+
+
+class UI(Drawable):
+
+    def __init__(self, tb):
+        self.tb = tb
+        self.w = tb.width()
+        self.h = tb.height()
+        self.t = self.m = self.b = None
+
+    def draw(self):
+        self.tb.clear()
+        if self.m:
+            self.m.draw()
+        if self.t:
+            self.t.draw()
+        if self.b:
+            self.b.draw()
+        self.tb.present()
+
+    def set_bottom(self, _bottom, update=True):
+        self.b = _bottom
+        h = max(self.b.prefh, 1)
+        self.b.set_dim(0, self.h - h, self.w, h)
+        if update:
+            self.update()
+
+    def set_main(self, _main, update=True):
+        self.m = _main
+        if update:
+            self.update()
+
+    def set_top(self, _top, update=True):
+        self.t = _top
+        self.t.set_dim(0, 0, self.w, max(self.t.prefh, 1))
+        if update:
+            self.update()
+
+    def update(self):
+        y = self.b.h + 1 if self.b else 0
+        sh = (self.b.h if self.b else 0) - (self.t.h if self.t else 0)
+        if (self.m):
+            self.m.set_dim(0, y, self.w, self.h - sh)
+
+    def update_size(self, w, h):
+        self.w = w
+        self.h = h
+
+        self.set_bottom(self.b, False)
+        self.set_top(self.t, False)
+        self.update()

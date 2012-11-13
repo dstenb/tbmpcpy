@@ -18,6 +18,14 @@ class Drawable:
         if self.x + x < self.tb.width() and self.y + y < self.tb.height():
             self.tb.change_cell(self.x + x, self.y + y, c, fg, bg)
 
+    def change_cells(self, ix, y, us, fg, bg, w=-1, pad=SPACE):
+        if w >= 0 and w < len(us):
+            us = us[0:w - len(us)]
+        for x, c in enumerate(us, ix):
+            self.change_cell(x, y, ord(c), fg, bg)
+        for x in xrange(ix + len(us), ix + max(w, len(us))):
+            self.change_cell(x, y, ord(pad), fg, bg)
+
     def draw(self):
         self
 

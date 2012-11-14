@@ -75,13 +75,14 @@ class UI(Drawable):
 
     def set_top(self, _top, update=True):
         self.t = _top
-        self.t.set_dim(0, 0, self.w, max(self.t.prefh, 1))
+        if self.t:
+            self.t.set_dim(0, 0, self.w, max(self.t.prefh, 1))
         if update:
             self.update()
 
     def update(self):
-        y = self.b.h + 1 if self.b else 0
-        sh = (self.b.h if self.b else 0) - (self.t.h if self.t else 0)
+        y = self.t.h + 1 if self.t else 0
+        sh = (self.b.h if self.b else 0) + (self.t.h if self.t else 0)
         if (self.m):
             self.m.set_dim(0, y, self.w, self.h - sh)
 

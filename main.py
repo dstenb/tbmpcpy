@@ -31,13 +31,14 @@ def length_str(time):
     return str(m).zfill(2) + ":" + str(s).zfill(2)
 
 
-class PlaylistUI(Drawable):
+class PlaylistUI(Drawable, StatusListener):
 
     def __init__(self, tb, pl):
         self.tb = tb
         self.pl = pl
         self.sel = None
         self.start = None
+        self.song = None
 
     def draw(self):
         l = len(self.pl)
@@ -51,10 +52,10 @@ class PlaylistUI(Drawable):
                 song = self.pl[y]
                 if song == self.pl.current:
                     c[0] |= termbox.BOLD
-                line = " " + song["artist"] + " - " + song["title"] + " "
-                line += "(" + song["album"] + ")"
+                line = " " + song.artist + " - " + song.title + " "
+                line += "(" + song.album + ")"
                 line = unicode(line, "utf-8")
-                right = "[" + length_str(int(song["time"])).rjust(5) + "]"
+                right = "[" + length_str(song.time).rjust(5) + "]"
                 self.change_cells(0, y, line, c[0], c[1], self.w - 9)
                 self.change_cells(self.w - 8, y, right, c[1], c[0])
             else:
@@ -62,6 +63,9 @@ class PlaylistUI(Drawable):
 
     def fix_bounds(self):
         self # TODO
+
+    def current_changed(self, song):
+        self.fix_bounds()
 
     def playlist_updated(self):
         self.fix_bounds()
@@ -83,10 +87,21 @@ class CurrentSongUI(Drawable, StatusListener):
         c = ( termbox.BLACK, termbox.GREEN)
         line = ""
         if self.song:
-            line = " " + self.song["artist"] + " - "
-            line += self.song["album"] + " - " + self.song["title"]
+            line = " " + self.song.artist + " - "
+            line += self.song.album + " - " + self.song.title
             line = unicode(line, "utf-8")
         self.change_cells(0, 0, line, c[0], c[1], self.w)
+
+
+class PlayerInfoUI(Drawable, StatusListener):
+
+    def __init__(self, tb, status):
+        self.tb = tb
+        self.set_prev_dim(-1, 1)
+        self.set_dim(0, 0, tb.width(), 1)
+
+    def draw(self):
+        self
 
 
 class Main:

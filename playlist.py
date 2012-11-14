@@ -16,8 +16,10 @@ class Playlist():
         return len(self.songs)
 
     def set_current(self, number):
+        print(self.songs)
         prev = self.current
         self.current = None if number == -1 else self.songs[number]
+        return self.current
 
     def update(self, songs, version):
         self.songs = songs

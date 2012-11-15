@@ -81,7 +81,7 @@ class UI(Drawable):
             self.update()
 
     def update(self):
-        y = self.t.h + 1 if self.t else 0
+        y = self.t.h if self.t else 0
         sh = (self.b.h if self.b else 0) + (self.t.h if self.t else 0)
         if (self.m):
             self.m.set_dim(0, y, self.w, self.h - sh)

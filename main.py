@@ -33,15 +33,14 @@ def length_str(time):
 
 class PlaylistUI(Drawable, StatusListener):
 
-    def __init__(self, tb, pl):
+    def __init__(self, tb, status):
         self.tb = tb
-        self.pl = pl
+        self.status = status
         self.sel = None
         self.start = None
-        self.song = None
 
     def draw(self):
-        l = len(self.pl)
+        l = len(self.status.playlist)
 
         for y in range(self.h):
             c = [termbox.WHITE, termbox.BLACK]
@@ -49,22 +48,22 @@ class PlaylistUI(Drawable, StatusListener):
                 c = [termbox.BLACK, termbox.WHITE]
             if y < l:
                 # TODO
-                song = self.pl[y]
-                if song == self.pl.current:
-                    c[0] |= termbox.BOLD
-                line = " " + song.artist + " - " + song.title + " "
-                line += "(" + song.album + ")"
-                line = unicode(line, "utf-8")
-                right = "[" + length_str(song.time).rjust(5) + "]"
-                self.change_cells(0, y, line, c[0], c[1], self.w - 9)
-                self.change_cells(self.w - 8, y, right, c[1], c[0])
+                song = self.status.playlist[y]
+                if song is self.status.current:
+                    c[0] = termbox.YELLOW
+                left = " %s - %s (%s)" % (song.artist, song.title, song.album)
+                left = unicode(left, "utf-8")
+                right = "[%s]" % length_str(song.time).rjust(5)
+                right = unicode(right, "utf-8")
+                self.change_cells(0, y, left, c[0], c[1], self.w - 9)
+                self.change_cells(self.w - 8, y, right, c[0], c[1])
             else:
                 self.change_cells(0, y, "", c[0], c[1], self.w)
 
     def fix_bounds(self):
         self # TODO
 
-    def current_changed(self, song):
+    def current_changed(self):
         self.fix_bounds()
 
     def playlist_updated(self):
@@ -77,32 +76,50 @@ class CurrentSongUI(Drawable, StatusListener):
         self.tb = tb
         self.set_pref_dim(-1, 1)
         self.set_dim(0, 0, tb.width(), 1)
-        self.song = None
+        self.status = status
         status.add_listener(self)
 
-    def current_changed(self, song):
-        self.song = song
-
     def draw(self):
-        c = ( termbox.BLACK, termbox.GREEN)
+        c = (termbox.BLACK, termbox.GREEN)
+        self.change_cells(0, 0, self.line(self.status.current),
+                c[0], c[1], self.w)
+
+    def line(self, song):
         line = ""
-        if self.song:
-            line = " " + self.song.artist + " - "
-            line += self.song.album + " - " + self.song.title
-            line = unicode(line, "utf-8")
-        self.change_cells(0, 0, line, c[0], c[1], self.w)
+        if song:
+            line = " %s - %s - %s" % (song.artist, song.title, song.album)
+        return(unicode(line, "utf-8"))
 
 
 class PlayerInfoUI(Drawable, StatusListener):
 
     def __init__(self, tb, status):
         self.tb = tb
-        self.set_prev_dim(-1, 1)
+        self.set_pref_dim(-1, 1)
         self.set_dim(0, 0, tb.width(), 1)
+        self.status = status
+        self.status.add_listener(self)
 
     def draw(self):
-        self
+        def sy(m):
+            symbols = { "random" : "r",
+                    "repeat" : "R",
+                    "single" : "s",
+                    "consume" : "c"
+            }
 
+            return symbols[m] if self.status.mode[m] else "-"
+
+        c = ( termbox.BLACK, termbox.GREEN)
+        line = " [%s%s%s%s] " % (sy("random"), sy("repeat"), sy("single"),
+                sy("consume"))
+        self.change_cells(0, 0, line, c[0], c[1], self.w)
+
+
+class BottomUI(Drawable):
+
+    def draw(self):
+        self.components = []
 
 class Main:
 
@@ -136,9 +153,9 @@ class Main:
 
         # Setup UI
         self.ui = UI(self.termbox)
-        #self.ui.set_top(PlaybarUI(self.termbox))
-        self.ui.set_main(PlaylistUI(self.termbox, self.playlist))
+        self.ui.set_top(PlayerInfoUI(self.termbox, self.status))
         self.ui.set_bottom(CurrentSongUI(self.termbox, self.status))
+        self.ui.set_main(PlaylistUI(self.termbox, self.status))
 
     def event_loop(self):
 

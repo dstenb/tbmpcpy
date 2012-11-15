@@ -7,19 +7,12 @@ class Playlist():
         self.songs = []
         self.length = 0
         self.version = 0
-        self.current = None
 
     def __getitem__(self, index):
         return self.songs[index]
 
     def __len__(self):
         return len(self.songs)
-
-    def set_current(self, number):
-        print(self.songs)
-        prev = self.current
-        self.current = None if number == -1 else self.songs[number]
-        return self.current
 
     def update(self, songs, version):
         self.songs = songs

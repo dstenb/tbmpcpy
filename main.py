@@ -36,37 +36,58 @@ class PlaylistUI(Drawable, StatusListener):
     def __init__(self, tb, status):
         self.tb = tb
         self.status = status
-        self.sel = None
-        self.start = None
+        self.sel = 0
+        self.start = 0
 
     def draw(self):
         l = len(self.status.playlist)
-
+        print("draw")
         for y in range(self.h):
+            pos = y + self.start
+            print(pos)
             c = [termbox.WHITE, termbox.BLACK]
             if y == self.sel:
                 c = [termbox.BLACK, termbox.WHITE]
             if y < l:
                 # TODO
-                song = self.status.playlist[y]
+                song = self.status.playlist[pos]
                 if song is self.status.current:
                     c[0] = termbox.YELLOW
                 left = " %s - %s (%s)" % (song.artist, song.title, song.album)
                 left = unicode(left, "utf-8")
-                right = "[%s]" % length_str(song.time).rjust(5)
+                right = " [%s] " % length_str(song.time).rjust(5)
                 right = unicode(right, "utf-8")
                 self.change_cells(0, y, left, c[0], c[1], self.w - 9)
-                self.change_cells(self.w - 8, y, right, c[0], c[1])
+                self.change_cells(self.w - 9, y, right, c[0], c[1])
             else:
                 self.change_cells(0, y, "", c[0], c[1], self.w)
 
     def fix_bounds(self):
-        self # TODO
+        if len(self.status.playlist) > 0:
+            self
+            if (self.sel - self.start) + 2 >= self.h:
+                self.start = self.sel - self.h
+            if self.sel < self.start:
+                self.start = self.sel
+            self.start = min(max(0, self.start), len(self.status.playlist) - 1)
+            self.sel = min(max(0, self.sel), len(self.status.playlist) - 1)
 
     def current_changed(self):
         self.fix_bounds()
 
     def playlist_updated(self):
+        if len(self.status.playlist) > 0 and self.sel == -1:
+            self.start = self.sel = 0
+        else:
+            self.start = self.sel = -1
+        self.fix_bounds()
+
+    def select(self, index, rel=False):
+        print(self.status.playlist.songs)
+        if rel:
+            self.sel += index
+        else:
+            self.sel = index
         self.fix_bounds()
 
 
@@ -85,9 +106,10 @@ class CurrentSongUI(Drawable, StatusListener):
                 c[0], c[1], self.w)
 
     def line(self, song):
-        line = ""
+        state_dict = {"play":  ">", "stop" : "[]", "pause" : "||"}
+        line = " " + state_dict.get(self.status.state, "hej")
         if song:
-            line = " %s - %s - %s" % (song.artist, song.title, song.album)
+            line += " %s - %s - %s" % (song.artist, song.title, song.album)
         return(unicode(line, "utf-8"))
 
 
@@ -136,27 +158,6 @@ class Main:
         except SocketError:
             self.connected = False
 
-    def exit(self):
-        if self.termbox:
-            self.termbox.close()
-        if self.connected:
-            self.mpd.disconnect()
-
-    def setup(self):
-        self.termbox = termbox.Termbox()
-        self.playlist = Playlist()
-        self.status = Status(self.playlist)
-
-        # Setup MPD
-        self.mpd = MPDClient()
-        self.connect()
-
-        # Setup UI
-        self.ui = UI(self.termbox)
-        self.ui.set_top(PlayerInfoUI(self.termbox, self.status))
-        self.ui.set_bottom(CurrentSongUI(self.termbox, self.status))
-        self.ui.set_main(PlaylistUI(self.termbox, self.status))
-
     def event_loop(self):
 
         sleep = UPDATE_RATE
@@ -186,12 +187,62 @@ class Main:
             else:
                 sleep = UPDATE_RATE - tdiff
 
+    def exit(self):
+        if self.termbox:
+            self.termbox.close()
+        if self.connected:
+            self.mpd.disconnect()
+
     def key_event(self, ch, key, mode):
 
-        if self.command.active:
-            self.command.key_event(ch, key, mode)
-        else:
+        if ch == "q":
             sys.exit(0)
+        elif ch == "j":
+            self.playlist_ui.select(1, True)
+        elif ch == "k":
+            self.playlist_ui.select(-1, True)
+        elif ch == "P":
+            self.play(self, self.playlist_ui.selected())
+        elif ch == "p":
+            self.playpause()
+        elif ch == "s":
+            self.stop()
+        elif ch == "/":
+            self.command.set_search()
+        elif ch == ":":
+            self
+
+    def play(self, id):
+        if self.connected:
+            self.mpd.play(self, id)
+
+    def playpause(self):
+        if self.connected:
+            if self.status.state == "play":
+                self.mpd.pause()
+            else:
+                self.mpd.play()
+
+    def setup(self):
+        self.termbox = termbox.Termbox()
+        self.playlist = Playlist()
+        self.status = Status(self.playlist)
+
+        # Setup MPD
+        self.mpd = MPDClient()
+        self.connect()
+
+        # Setup UI
+        self.playlist_ui = PlaylistUI(self.termbox, self.status)
+
+        self.ui = UI(self.termbox)
+        self.ui.set_top(PlayerInfoUI(self.termbox, self.status))
+        self.ui.set_bottom(CurrentSongUI(self.termbox, self.status))
+        self.ui.set_main(self.playlist_ui)
+
+    def stop(self):
+        if self.connected:
+            self.mpd.stop()
 
     def update(self):
         try:

@@ -26,7 +26,9 @@ def length_str(time):
     m = time / 60
     s = time % 60
 
-    if m > 99:
+    if m == 0:
+        return "--:--"
+    else if m > 99:
         return str(m) + "m"
     return str(m).zfill(2) + ":" + str(s).zfill(2)
 

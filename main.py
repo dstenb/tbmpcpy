@@ -1,7 +1,7 @@
 #!/usr/bin/python
 # -*- encoding: utf-8 -*-
 
-
+import select
 import sys
 import termbox
 import time
@@ -28,7 +28,7 @@ def length_str(time):
 
     if m == 0:
         return "--:--"
-    else if m > 99:
+    elif m > 99:
         return str(m) + "m"
     return str(m).zfill(2) + ":" + str(s).zfill(2)
 
@@ -46,7 +46,6 @@ class PlaylistUI(Drawable, StatusListener):
         print("draw")
         for y in range(self.h):
             pos = y + self.start
-            print(pos)
             c = [termbox.WHITE, termbox.BLACK]
             if y == self.sel:
                 c = [termbox.BLACK, termbox.WHITE]
@@ -85,7 +84,6 @@ class PlaylistUI(Drawable, StatusListener):
         self.fix_bounds()
 
     def select(self, index, rel=False):
-        print(self.status.playlist.songs)
         if rel:
             self.sel += index
         else:
@@ -108,7 +106,7 @@ class CurrentSongUI(Drawable, StatusListener):
                 c[0], c[1], self.w)
 
     def line(self, song):
-        state_dict = {"play":  ">", "stop" : "[]", "pause" : "||"}
+        state_dict = {"play":  ">", "stop": "[]", "pause": "||"}
         line = " " + state_dict.get(self.status.state, "hej")
         if song:
             line += " %s - %s - %s" % (song.artist, song.title, song.album)
@@ -126,15 +124,15 @@ class PlayerInfoUI(Drawable, StatusListener):
 
     def draw(self):
         def sy(m):
-            symbols = { "random" : "r",
-                    "repeat" : "R",
-                    "single" : "s",
-                    "consume" : "c"
+            symbols = {"random": "r",
+                    "repeat": "R",
+                    "single": "s",
+                    "consume": "c"
             }
 
             return symbols[m] if self.status.mode[m] else "-"
 
-        c = ( termbox.BLACK, termbox.GREEN)
+        c = (termbox.BLACK, termbox.GREEN)
         line = " [%s%s%s%s] " % (sy("random"), sy("repeat"), sy("single"),
                 sy("consume"))
         self.change_cells(0, 0, line, c[0], c[1], self.w)
@@ -145,49 +143,222 @@ class BottomUI(Drawable):
     def draw(self):
         self.components = []
 
+
+class MPDWrapper():
+
+    def __init__(self, host, port):
+        self.mpd = MPDClient()
+        self.host = host
+        self.port = port
+        self.connected = False
+
+        self.in_idle = False
+
+    def connect(self):
+        try:
+            self.mpd.connect(self.host, self.port)
+            self.connected = True
+        except SocketError:
+            self.connected = False
+        return self.connected
+
+    def disconnect(self):
+        if self.connected:
+            self.mpd.disconnect()
+            self.connected = False
+
+    def fileno(self):
+        return self.mpd.fileno()
+
+    def idle(self):
+        if self.connected and not self.in_idle:
+            self.in_idle = True
+            self.mpd.send_idle()
+        return self.in_idle
+
+    def noidle(self, block=False):
+        changes = []
+        if self.connected and self.in_idle:
+            self.in_idle = False
+            if not block:
+                self.mpd.send_noidle()
+            changes = self.mpd.fetch_idle()
+        return changes
+
+    def playlist(self):
+        return self.mpd.playlistinfo()
+
+    def status(self):
+        return self.mpd.status()
+
+
+def _get_bool(d, v, de=0):
+    return bool(int(d.get(v, de)))
+
+
+class MPDStatus:
+
+    def __init__(self, mpcw):
+        self.mpcw = mpcw
+        self.playlist = Playlist()
+        self.mode = {"random": False,
+                "repeat": False,
+                "single": False,
+                "consume": False
+        }
+        self.current = None
+        self.state = ""
+        self.listeners = []
+
+    def _set_current(self, pos):
+        try:
+            self.current = self.playlist[pos]
+        except:
+            print("oops")
+            self.current = None
+        print(self.current)
+        for o in self.listeners:
+            o.current_changed()
+
+    def _set_mode(self, m, b):
+        if self.mode[m] != b:
+            self.mode[m] = b
+            for o in self.listeners:
+                o.mode_changed(m, b)
+
+    def _set_state(self, state):
+        if self.state != state:
+            self.state = state
+            for o in self.listeners:
+                o.state_changed(state)
+
+    def _set_playlist(self, _songs, version):
+        songs = []
+        for d in _songs:
+            songs.append(Song(d))
+        self.playlist.update(songs, version)
+        for o in self.listeners:
+            o.playlist_changed()
+
+    def add_listener(self, o):
+        self.listeners.append(o)
+
+    def init(self):
+        results = self.mpcw.status()
+
+        # Update playlist
+        self._set_playlist(self.mpcw.playlist(), int(results["playlist"]))
+
+        # Update state
+        self._set_state(results.get("state", "unknown"))
+
+        # Update mode
+        self._set_mode("random", _get_bool(results, "random"))
+        self._set_mode("repeat", _get_bool(results, "repeat"))
+        self._set_mode("single", _get_bool(results, "single"))
+
+        # Update current song
+        self._set_current(int(results.get("song", -1)))
+
+    def update(self, changes):
+        results = self.mpcw.status()
+        print(results)
+
+        if "playlist" in changes:
+            print(":: updating playlist")
+            self._set_playlist(self.mpcw.playlist(), int(results["playlist"]))
+
+        if "player" in changes:
+            print(":: updating player")
+
+            # Update state
+            self._set_state(results.get("state", "unknown"))
+
+            # Update current song if necessary
+            curr_id = int(results.get("songid", -1))
+            prev_id = self.current.songid if self.current else -1
+
+            if curr_id != prev_id:
+                self._set_current(int(results.get("song", -1)))
+
+        if "options" in changes:
+            print(":: updating changes")
+            self._set_mode("random", _get_bool(results, "random"))
+            self._set_mode("repeat", _get_bool(results, "repeat"))
+            self._set_mode("single", _get_bool(results, "single"))
+
+        if "output" in changes:
+            print(":: updating output")
+            # TODO
+
+        if "stored_playlist" in changes:
+            print(":: updating stored_playlist")
+            # TODO
+
+
+class Keybindings:
+    def __init__(self, _ch={}, _key={}):
+        self.by_ch = _ch
+        self.by_key = _key
+
+    def add_ch(self, ch, func):
+        self.by_ch[ch] = func
+
+    def add_key(self, key, func):
+        self.by_key[key] = func
+
+    def get(self, ch, key):
+        func = self.by_ch.get(ch, None) or self.by_key.get(key, None)
+        return func
+
+
 class Main:
 
     def __init__(self, cfg):
         self.termbox = None
-        self.mpd = None
         self.cfg = cfg
         self.connected = False
-
-    def connect(self):
-        try:
-            self.mpd.connect(self.cfg['host'], self.cfg['port'])
-            self.connected = True
-        except SocketError:
-            self.connected = False
+        self.mpcw = MPDWrapper(cfg["host"], cfg["port"])
 
     def event_loop(self):
 
-        sleep = UPDATE_RATE
+        self.status.init()
         self.ui.draw()
-        self.update()
-        last = time_in_millis()
 
-        while True:
+        for i in xrange(10):
             self.ui.draw()
-            event = self.termbox.peek_event(sleep)
 
-            if event:
-                (type, ch, key, mod, w, h) = event
+            fds = [sys.stdin]
+            if self.mpcw.connected:
+                fds.append(self.mpcw)
+                self.mpcw.idle()
 
-                if type == termbox.EVENT_RESIZE:
-                    self.ui.update_size(w, h)
-                elif type == termbox.EVENT_KEY:
-                    self.key_event(ch, key, mod)
+            try:
+                active, _, _ = select.select(fds, [], [], 5)
+            except select.error, err:
+                if err[0] == 4:
+                    # EINTR
+                    continue
+                else:
+                    raise err
 
-            curr = time_in_millis()
-            tdiff = curr - last
+            if self.mpcw in active:
+                print("Mpd")
+                changes = self.mpcw.noidle()
+                self.status.update(changes)
+                print(changes)
 
-            if tdiff >= UPDATE_RATE:
-                self.update()
-                last = curr
-                sleep = UPDATE_RATE
-            else:
-                sleep = UPDATE_RATE - tdiff
+            print(active)
+            if sys.stdin in active:
+                event = self.termbox.poll_event()
+
+                if event:
+                    (type, ch, key, mod, w, h) = event
+
+                    if type == termbox.EVENT_RESIZE:
+                        self.ui.update_size(w, h)
+                    elif type == termbox.EVENT_KEY:
+                        self.key_event(ch, key, mod)
 
     def exit(self):
         if self.termbox:
@@ -196,23 +367,9 @@ class Main:
             self.mpd.disconnect()
 
     def key_event(self, ch, key, mode):
-
-        if ch == "q":
-            sys.exit(0)
-        elif ch == "j":
-            self.playlist_ui.select(1, True)
-        elif ch == "k":
-            self.playlist_ui.select(-1, True)
-        elif ch == "P":
-            self.play(self, self.playlist_ui.selected())
-        elif ch == "p":
-            self.playpause()
-        elif ch == "s":
-            self.stop()
-        elif ch == "/":
-            self.command.set_search()
-        elif ch == ":":
-            self
+        func = self.bindings.get(ch, key)
+        if func:
+            func()
 
     def play(self, id):
         if self.connected:
@@ -227,12 +384,10 @@ class Main:
 
     def setup(self):
         self.termbox = termbox.Termbox()
-        self.playlist = Playlist()
-        self.status = Status(self.playlist)
+        self.status = MPDStatus(self.mpcw)
 
         # Setup MPD
-        self.mpd = MPDClient()
-        self.connect()
+        self.mpcw.connect()
 
         # Setup UI
         self.playlist_ui = PlaylistUI(self.termbox, self.status)
@@ -242,17 +397,11 @@ class Main:
         self.ui.set_bottom(CurrentSongUI(self.termbox, self.status))
         self.ui.set_main(self.playlist_ui)
 
-    def stop(self):
-        if self.connected:
-            self.mpd.stop()
-
-    def update(self):
-        try:
-            self.status.update(self.mpd)
-        except:
-            # TODO: fix error support
-            traceback.print_exc()
-            sys.exit(0)
+        self.bindings = Keybindings(
+                {"q": lambda: sys.exit(0),
+                  "j": lambda: self.playlist_ui.select(1, True),
+                  "k": lambda: self.playlist_ui.select(-1, True)
+                })
 
 
 def redirect_std(path):
@@ -262,17 +411,18 @@ def redirect_std(path):
 
     return log_file
 
+
 def main():
     log_file = redirect_std("log")
 
-    colors = { "pl_normal" : (termbox.WHITE, termbox.BLACK),
-            "pl_selected" : (termbox.BLUE, termbox.BLACK),
-            "pl_current" : (termbox.YELLOW, termbox.BLACK)
+    colors = {"pl_normal": (termbox.WHITE, termbox.BLACK),
+            "pl_selected": (termbox.BLUE, termbox.BLACK),
+            "pl_current": (termbox.YELLOW, termbox.BLACK)
     }
 
-    cfg = { "host" : "localhost",
-            "port" : 6600,
-            "pass" : None
+    cfg = {"host": "localhost",
+            "port": 6600,
+            "pass": None
     }
 
     m = Main(cfg)

@@ -90,6 +90,9 @@ class PlaylistUI(Drawable, StatusListener):
             self.sel = index
         self.fix_bounds()
 
+    def selected(self):
+        return self.sel
+
 
 class CurrentSongUI(Drawable, StatusListener):
 
@@ -144,14 +147,30 @@ class BottomUI(Drawable):
         self.components = []
 
 
+class Changes:
+
+    def __init__(self):
+        self.changes = []
+
+    def add(self, _list):
+        for s in _list:
+            if not s in self.changes:
+                self.changes.append(s)
+
+    def get(self):
+        c = self.changes
+        self.changes = []
+        return c
+
+
 class MPDWrapper():
 
     def __init__(self, host, port):
         self.mpd = MPDClient()
+        self.changes = Changes()
         self.host = host
         self.port = port
         self.connected = False
-
         self.in_idle = False
 
     def connect(self):
@@ -170,6 +189,9 @@ class MPDWrapper():
     def fileno(self):
         return self.mpd.fileno()
 
+    def get_changes(self):
+        return self.changes.get() if not self.in_idle else []
+
     def idle(self):
         if self.connected and not self.in_idle:
             self.in_idle = True
@@ -183,13 +205,20 @@ class MPDWrapper():
             if not block:
                 self.mpd.send_noidle()
             changes = self.mpd.fetch_idle()
-        return changes
+            self.changes.add(changes)
 
     def playlist(self):
         return self.mpd.playlistinfo()
 
+    def player(self, name, *args):
+        if self.connected:
+            self.noidle()
+            getattr(self.mpd, name)(*args)
+
     def status(self):
         return self.mpd.status()
+
+
 
 
 def _get_bool(d, v, de=0):
@@ -201,10 +230,8 @@ class MPDStatus:
     def __init__(self, mpcw):
         self.mpcw = mpcw
         self.playlist = Playlist()
-        self.mode = {"random": False,
-                "repeat": False,
-                "single": False,
-                "consume": False
+        self.mode = {"random": False, "repeat": False,
+                "single": False, "consume": False
         }
         self.current = None
         self.state = ""
@@ -214,9 +241,7 @@ class MPDStatus:
         try:
             self.current = self.playlist[pos]
         except:
-            print("oops")
             self.current = None
-        print(self.current)
         for o in self.listeners:
             o.current_changed()
 
@@ -245,22 +270,17 @@ class MPDStatus:
 
     def init(self):
         results = self.mpcw.status()
-
-        # Update playlist
         self._set_playlist(self.mpcw.playlist(), int(results["playlist"]))
-
-        # Update state
         self._set_state(results.get("state", "unknown"))
-
-        # Update mode
         self._set_mode("random", _get_bool(results, "random"))
         self._set_mode("repeat", _get_bool(results, "repeat"))
         self._set_mode("single", _get_bool(results, "single"))
-
-        # Update current song
         self._set_current(int(results.get("song", -1)))
 
     def update(self, changes):
+        if len(changes) == 0:
+            return
+
         results = self.mpcw.status()
         print(results)
 
@@ -319,13 +339,14 @@ class Main:
         self.cfg = cfg
         self.connected = False
         self.mpcw = MPDWrapper(cfg["host"], cfg["port"])
+        self.changes = Changes()
 
     def event_loop(self):
 
         self.status.init()
         self.ui.draw()
 
-        for i in xrange(10):
+        for i in xrange(100):
             self.ui.draw()
 
             fds = [sys.stdin]
@@ -337,18 +358,14 @@ class Main:
                 active, _, _ = select.select(fds, [], [], 5)
             except select.error, err:
                 if err[0] == 4:
-                    # EINTR
                     continue
                 else:
                     raise err
 
             if self.mpcw in active:
-                print("Mpd")
-                changes = self.mpcw.noidle()
-                self.status.update(changes)
-                print(changes)
+                print(":: Mpd")
+                self.mpcw.noidle()
 
-            print(active)
             if sys.stdin in active:
                 event = self.termbox.poll_event()
 
@@ -360,27 +377,18 @@ class Main:
                     elif type == termbox.EVENT_KEY:
                         self.key_event(ch, key, mod)
 
+            self.status.update(self.mpcw.get_changes())
+
     def exit(self):
         if self.termbox:
             self.termbox.close()
         if self.connected:
-            self.mpd.disconnect()
+            self.mpcw.disconnect()
 
     def key_event(self, ch, key, mode):
         func = self.bindings.get(ch, key)
         if func:
             func()
-
-    def play(self, id):
-        if self.connected:
-            self.mpd.play(self, id)
-
-    def playpause(self):
-        if self.connected:
-            if self.status.state == "play":
-                self.mpd.pause()
-            else:
-                self.mpd.play()
 
     def setup(self):
         self.termbox = termbox.Termbox()
@@ -400,7 +408,18 @@ class Main:
         self.bindings = Keybindings(
                 {"q": lambda: sys.exit(0),
                   "j": lambda: self.playlist_ui.select(1, True),
-                  "k": lambda: self.playlist_ui.select(-1, True)
+                  "k": lambda: self.playlist_ui.select(-1, True),
+                  "P": lambda: self.mpcw.player("play") if
+                      self.status.state != "play" else
+                      self.mpcw.player("pause"),
+                  "s": lambda: self.mpcw.player("stop"),
+                  "n": lambda: self.mpcw.player("next"),
+                  "p": lambda: self.mpcw.player("previous")
+                },
+                {
+                    termbox.KEY_ENTER: lambda:
+                        self.mpcw.player("play", self.playlist_ui.selected())
+                        if self.playlist_ui.selected() > 0 else False
                 })
 
 
@@ -437,3 +456,20 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+    #def _player(self, name, *args):
+    #    if name in self.player_commands:
+    #        if self.connected:
+    #            self.noidle()
+    #            self.player_commands[name](*args)
+
+
+        #self.player_commands = {
+        #    "next": lambda: self.mpd.next(),
+        #    "prev": lambda: self.mpd.previous(),
+        #    "play": lambda id: self.mpd.play(id),
+        #    "playpause": lambda play: self.mpd.play()
+        #        if play else self.mpd.pause(),
+        #    "stop": lambda: self.mpd.stop()
+        #}
+

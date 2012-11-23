@@ -373,7 +373,8 @@ class Main:
                 active, _, _ = select.select(fds, [], [], 5)
             except select.error, err:
                 if err[0] == 4:
-                    continue
+                    self.handle_tb_event(self.termbox.peek_event(100))
+                    active = []
                 else:
                     raise err
 
@@ -382,15 +383,7 @@ class Main:
                 self.mpcw.noidle()
 
             if sys.stdin in active:
-                event = self.termbox.poll_event()
-
-                if event:
-                    (type, ch, key, mod, w, h) = event
-
-                    if type == termbox.EVENT_RESIZE:
-                        self.ui.update_size(w, h)
-                    elif type == termbox.EVENT_KEY:
-                        self.key_event(ch, key, mod)
+                self.handle_tb_event(self.termbox.peek_event(100))
 
             self.status.update(self.mpcw.get_changes())
 
@@ -399,6 +392,15 @@ class Main:
             self.termbox.close()
         if self.connected:
             self.mpcw.disconnect()
+
+    def handle_tb_event(self, event):
+        if event:
+            (type, ch, key, mod, w, h) = event
+
+            if type == termbox.EVENT_RESIZE:
+                self.ui.update_size(w, h)
+            elif type == termbox.EVENT_KEY:
+                self.key_event(ch, key, mod)
 
     def key_event(self, ch, key, mode):
         func = self.bindings.get(ch, key)

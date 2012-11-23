@@ -26,6 +26,14 @@ class Drawable:
         for x in xrange(ix + len(us), ix + max(w, len(us))):
             self.change_cell(x, y, ord(pad), fg, bg)
 
+    def change_cells_list(self, ix, y, l):
+        x = ix
+        for v in l:
+            s, fg, bg = v
+            self.change_cells(x, y, s, fg, bg)
+            x += len(s)
+
+
     def draw(self):
         self
 

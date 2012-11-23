@@ -44,34 +44,49 @@ class PlaylistUI(Drawable, StatusListener):
     def draw(self):
         l = len(self.status.playlist)
         print("draw")
+        numw = int(math.floor(math.log10(l))) + 2 if l > 0 else 0
+        print("numw")
+        print(numw)
         for y in range(self.h):
             pos = y + self.start
-            c = [termbox.WHITE, termbox.BLACK]
-            if y == self.sel:
-                c = [termbox.BLACK, termbox.WHITE]
+
             if y < l:
                 # TODO
                 song = self.status.playlist[pos]
+                num_str = "%s " % str(pos + 1)
+                time_str = "[%s] " % length_str(song.time).rjust(5)
+                format = [ [num_str.rjust(numw), termbox.BLUE, termbox.BLACK],
+                    ["%s" % song.artist, termbox.RED, termbox.BLACK],
+                    [" - ", termbox.WHITE, termbox.BLACK],
+                    ["%s " % song.title, termbox.YELLOW, termbox.BLACK],
+                    ["(", termbox.WHITE, termbox.BLACK],
+                    ["%s" % song.album, termbox.GREEN, termbox.BLACK],
+                    [")", termbox.WHITE, termbox.BLACK],
+                    [time_str.rjust(self.w -9), termbox.RED, termbox.BLACK]
+                ]
+
+                def set_colors(list, fg, bg):
+                    for v in list:
+                        v[1] = fg
+                        v[2] = bg
+
                 if song is self.status.current:
-                    c[0] = termbox.YELLOW
-                left = " %s - %s (%s)" % (song.artist, song.title, song.album)
-                left = unicode(left, "utf-8")
-                right = " [%s] " % length_str(song.time).rjust(5)
-                right = unicode(right, "utf-8")
-                self.change_cells(0, y, left, c[0], c[1], self.w - 9)
-                self.change_cells(self.w - 9, y, right, c[0], c[1])
+                    set_colors(format, termbox.WHITE, termbox.BLACK)
+
+                if y == self.sel:
+                    set_colors(format, termbox.BLACK, termbox.WHITE)
+                self.change_cells_list(0, y, format)
             else:
-                self.change_cells(0, y, "", c[0], c[1], self.w)
+                self.change_cells(0, y, "", termbox.BLACK, termbox.BLACK, self.w)
 
     def fix_bounds(self):
         if len(self.status.playlist) > 0:
-            self
+            self.sel = min(max(0, self.sel), len(self.status.playlist) - 1)
             if (self.sel - self.start) + 2 >= self.h:
                 self.start = self.sel - self.h
             if self.sel < self.start:
                 self.start = self.sel
             self.start = min(max(0, self.start), len(self.status.playlist) - 1)
-            self.sel = min(max(0, self.sel), len(self.status.playlist) - 1)
 
     def current_changed(self):
         self.fix_bounds()
@@ -113,7 +128,7 @@ class CurrentSongUI(Drawable, StatusListener):
         line = " " + state_dict.get(self.status.state, "hej")
         if song:
             line += " %s - %s - %s" % (song.artist, song.title, song.album)
-        return(unicode(line, "utf-8"))
+        return line
 
 
 class PlayerInfoUI(Drawable, StatusListener):
@@ -166,7 +181,7 @@ class Changes:
 class MPDWrapper():
 
     def __init__(self, host, port):
-        self.mpd = MPDClient()
+        self.mpd = MPDClient(use_unicode=True)
         self.changes = Changes()
         self.host = host
         self.port = port
@@ -409,6 +424,8 @@ class Main:
                 {"q": lambda: sys.exit(0),
                   "j": lambda: self.playlist_ui.select(1, True),
                   "k": lambda: self.playlist_ui.select(-1, True),
+                  "g": lambda: self.playlist_ui.select(0),
+                  "G": lambda: self.playlist_ui.select(sys.maxsize),
                   "P": lambda: self.mpcw.player("play") if
                       self.status.state != "play" else
                       self.mpcw.player("pause"),
@@ -419,7 +436,11 @@ class Main:
                 {
                     termbox.KEY_ENTER: lambda:
                         self.mpcw.player("play", self.playlist_ui.selected())
-                        if self.playlist_ui.selected() > 0 else False
+                        if self.playlist_ui.selected() > 0 else False,
+                    termbox.KEY_ARROW_UP: lambda:
+                        self.playlist_ui.select(-1, True),
+                    termbox.KEY_ARROW_DOWN: lambda:
+                        self.playlist_ui.select(1, True),
                 })
 
 

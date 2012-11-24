@@ -7,6 +7,32 @@ SPACE = u" "
 HLINE = u"─"
 
 
+def _cl(s, fg, bg):
+    return map(lambda unused: [fg, bg], s)
+
+
+class Format:
+
+    def __init__(self, s="", fg=termbox.WHITE, bg=termbox.BLACK):
+        self.s = s
+        self.colors = _cl(s, fg, bg)
+
+    def add(self, ns, fg, bg):
+        self.s += ns
+        self.colors += _cl(ns, fg, bg)
+
+    def replace(self, pos, ns, fg, bg):
+        if pos > len(self.s):
+            self.add("".ljust(pos - len(self.s)), *self.colors[-1])
+            self.add(ns, fg, bg)
+        else:
+            self.s = self.s[0:pos] + ns + self.s[pos:]
+            self.colors = self.colors[0:pos] + _cl(ns, fg, bg) + self.colors[pos:]
+
+    def set_color(self, fg, bg):
+        self.colors = _cl(self.s, fg, bg)
+
+
 class Drawable:
 
     def __init__(self, tb):
@@ -26,12 +52,14 @@ class Drawable:
         for x in xrange(ix + len(us), ix + max(w, len(us))):
             self.change_cell(x, y, ord(pad), fg, bg)
 
-    def change_cells_list(self, ix, y, l):
-        x = ix
-        for v in l:
-            s, fg, bg = v
-            self.change_cells(x, y, s, fg, bg)
-            x += len(s)
+    def change_cells_format(self, ix, y, format, w=-1, pad=SPACE):
+        fg, bg = termbox.WHITE, termbox.BLACK
+
+        for x, c in enumerate(format.s):
+            fg, bg = format.colors[x]
+            self.change_cell(x + ix, y, ord(c), fg, bg)
+        for x in xrange(ix + len(format.s), ix + max(w, len(format.s))):
+            self.change_cell(x, y, ord(pad), fg, bg)
 
 
     def draw(self):

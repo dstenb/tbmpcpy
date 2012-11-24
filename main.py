@@ -45,8 +45,6 @@ class PlaylistUI(Drawable, StatusListener):
         l = len(self.status.playlist)
         print("draw")
         numw = int(math.floor(math.log10(l))) + 2 if l > 0 else 0
-        print("numw")
-        print(numw)
         for y in range(self.h):
             pos = y + self.start
 
@@ -54,30 +52,26 @@ class PlaylistUI(Drawable, StatusListener):
                 # TODO
                 song = self.status.playlist[pos]
                 num_str = "%s " % str(pos + 1)
-                time_str = "[%s] " % length_str(song.time).rjust(5)
-                format = [ [num_str.rjust(numw), termbox.BLUE, termbox.BLACK],
-                    ["%s" % song.artist, termbox.RED, termbox.BLACK],
-                    [" - ", termbox.WHITE, termbox.BLACK],
-                    ["%s " % song.title, termbox.YELLOW, termbox.BLACK],
-                    ["(", termbox.WHITE, termbox.BLACK],
-                    ["%s" % song.album, termbox.GREEN, termbox.BLACK],
-                    [")", termbox.WHITE, termbox.BLACK],
-                    [time_str.rjust(self.w -9), termbox.RED, termbox.BLACK]
-                ]
+                time_str = " [%s] " % length_str(song.time)
 
-                def set_colors(list, fg, bg):
-                    for v in list:
-                        v[1] = fg
-                        v[2] = bg
-
-                if song is self.status.current:
-                    set_colors(format, termbox.WHITE, termbox.BLACK)
+                f = Format()
+                f.add(num_str.rjust(numw + 1), termbox.BLUE, termbox.BLACK)
+                f.add(song.artist, termbox.RED, termbox.BLACK)
+                f.add(" - ", termbox.WHITE, termbox.BLACK)
+                f.add(song.title, termbox.YELLOW, termbox.BLACK)
+                f.add(" (", termbox.WHITE, termbox.BLACK)
+                f.add(song.album, termbox.GREEN, termbox.BLACK)
+                f.add(")", termbox.WHITE, termbox.BLACK)
+                f.replace(self.w - 9, time_str, termbox.BLUE, termbox.BLACK)
 
                 if y == self.sel:
-                    set_colors(format, termbox.BLACK, termbox.WHITE)
-                self.change_cells_list(0, y, format)
+                    f.set_color(termbox.BLACK, termbox.WHITE)
+                elif song is self.status.current:
+                    f.set_color(termbox.WHITE, termbox.BLACK)
+
+                self.change_cells_format(0, y, f)
             else:
-                self.change_cells(0, y, "", termbox.BLACK, termbox.BLACK, self.w)
+                self.change_cells_format(0, y, Format("".ljust(self.w)))
 
     def fix_bounds(self):
         if len(self.status.playlist) > 0:

@@ -8,7 +8,11 @@ HLINE = u"─"
 
 
 def _cl(s, fg, bg):
-    return map(lambda unused: [fg, bg], s)
+    return [[fg, bg] for x in xrange(len(s))]
+
+
+def _replace_color(colors, new, pos):
+    return colors[0:pos] + new + colors[pos + len(new):]
 
 
 class Format:
@@ -26,8 +30,12 @@ class Format:
             self.add("".ljust(pos - len(self.s)), *self.colors[-1])
             self.add(ns, fg, bg)
         else:
-            self.s = self.s[0:pos] + ns + self.s[pos:]
-            self.colors = self.colors[0:pos] + _cl(ns, fg, bg) + self.colors[pos:]
+            self.s = self.s[0:pos] + ns + self.s[pos + len(ns):]
+            self.colors = _replace_color(self.colors, _cl(ns, fg, bg), pos)
+
+    def set_bold(self):
+        for v in self.colors:
+            v[0] |= termbox.BOLD
 
     def set_color(self, fg, bg):
         self.colors = _cl(self.s, fg, bg)
@@ -60,7 +68,6 @@ class Drawable:
             self.change_cell(x + ix, y, ord(c), fg, bg)
         for x in xrange(ix + len(format.s), ix + max(w, len(format.s))):
             self.change_cell(x, y, ord(pad), fg, bg)
-
 
     def draw(self):
         self

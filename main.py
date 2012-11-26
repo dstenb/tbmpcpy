@@ -66,8 +66,9 @@ class PlaylistUI(Drawable, StatusListener):
 
                 if y == self.sel:
                     f.set_color(termbox.BLACK, termbox.WHITE)
-                elif song is self.status.current:
-                    f.set_color(termbox.WHITE, termbox.BLACK)
+                if song is self.status.current:
+                    f.set_bold()
+                    f.replace(0, ">", termbox.BLUE, termbox.BLACK)
 
                 self.change_cells_format(0, y, f)
             else:
@@ -113,7 +114,7 @@ class CurrentSongUI(Drawable, StatusListener):
         status.add_listener(self)
 
     def draw(self):
-        c = (termbox.BLACK, termbox.GREEN)
+        c = (termbox.WHITE, termbox.BLACK)
         self.change_cells(0, 0, self.line(self.status.current),
                 c[0], c[1], self.w)
 
@@ -144,9 +145,9 @@ class PlayerInfoUI(Drawable, StatusListener):
 
             return symbols[m] if self.status.mode[m] else "-"
 
-        c = (termbox.BLACK, termbox.GREEN)
-        line = " [%s%s%s%s] " % (sy("random"), sy("repeat"), sy("single"),
-                sy("consume"))
+        c = (termbox.WHITE, termbox.BLACK)
+        line = " Playlist [%s%s%s%s] " % (sy("random"), sy("repeat"),
+                sy("single"), sy("consume"))
         self.change_cells(0, 0, line, c[0], c[1], self.w)
 
 
@@ -226,8 +227,6 @@ class MPDWrapper():
 
     def status(self):
         return self.mpd.status()
-
-
 
 
 def _get_bool(d, v, de=0):
@@ -367,7 +366,7 @@ class Main:
                 active, _, _ = select.select(fds, [], [], 5)
             except select.error, err:
                 if err[0] == 4:
-                    self.handle_tb_event(self.termbox.peek_event(100))
+                    self.handle_tb_event(self.termbox.peek_event(10))
                     active = []
                 else:
                     raise err
@@ -377,7 +376,8 @@ class Main:
                 self.mpcw.noidle()
 
             if sys.stdin in active:
-                self.handle_tb_event(self.termbox.peek_event(100))
+                while self.handle_tb_event(self.termbox.peek_event(10)):
+                    self.ui.draw()
 
             self.status.update(self.mpcw.get_changes())
 
@@ -473,20 +473,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-    #def _player(self, name, *args):
-    #    if name in self.player_commands:
-    #        if self.connected:
-    #            self.noidle()
-    #            self.player_commands[name](*args)
-
-
-        #self.player_commands = {
-        #    "next": lambda: self.mpd.next(),
-        #    "prev": lambda: self.mpd.previous(),
-        #    "play": lambda id: self.mpd.play(id),
-        #    "playpause": lambda play: self.mpd.play()
-        #        if play else self.mpd.pause(),
-        #    "stop": lambda: self.mpd.stop()
-        #}
-

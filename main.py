@@ -340,7 +340,72 @@ class Keybindings:
         return func
 
 
-class Main:
+class State:
+
+    def __init__(self, mpcw, status, termbox):
+        self.mpcw = mpcw
+        self.status = status
+        self.termbox = termbox
+
+    def draw(self):
+        self
+
+    def key_event(self, ch, key, mod):
+        self
+
+
+class StateListener:
+
+    def change_state(self, str):
+        self
+
+class PlaylistState(State):
+
+    def __init__(self, _listener, _mpcw, _status, _termbox):
+        self.listener = _listener
+        self.mpcw = _mpcw
+        self.status = _status
+        self.termbox = _termbox
+
+        self.playlist_ui = PlaylistUI(self.termbox, self.status)
+        self.ui = UI(self.termbox)
+        self.ui.set_top(PlayerInfoUI(self.termbox, self.status))
+        self.ui.set_bottom(CurrentSongUI(self.termbox, self.status))
+        self.ui.set_main(self.playlist_ui)
+
+        self.bindings = Keybindings(
+                {"q": lambda: sys.exit(0),
+                  "j": lambda: self.playlist_ui.select(1, True),
+                  "k": lambda: self.playlist_ui.select(-1, True),
+                  "g": lambda: self.playlist_ui.select(0),
+                  "G": lambda: self.playlist_ui.select(sys.maxsize),
+                  "P": lambda: self.mpcw.player("play") if
+                      self.status.state != "play" else
+                      self.mpcw.player("pause"),
+                  "s": lambda: self.mpcw.player("stop"),
+                  "n": lambda: self.mpcw.player("next"),
+                  "p": lambda: self.mpcw.player("previous"),
+                  "2": lambda: self.listener.change_state("browser")
+                },
+                {
+                    termbox.KEY_ENTER: lambda:
+                        self.mpcw.player("play", self.playlist_ui.selected())
+                        if self.playlist_ui.selected() > 0 else False,
+                    termbox.KEY_ARROW_UP: lambda:
+                        self.playlist_ui.select(-1, True),
+                    termbox.KEY_ARROW_DOWN: lambda:
+                        self.playlist_ui.select(1, True),
+                })
+
+    def draw(self):
+        self.ui.draw()
+
+    def key_event(self, ch, key, mod):
+        func = self.bindings.get(ch, key)
+        if func:
+            func()
+
+class Main(StateListener):
 
     def __init__(self, cfg):
         self.termbox = None
@@ -349,13 +414,20 @@ class Main:
         self.mpcw = MPDWrapper(cfg["host"], cfg["port"])
         self.changes = Changes()
 
-    def event_loop(self):
+    def change_state(self, s):
+        state = self.states.get(s, None)
+        print(s)
+        assert(state)
 
+        if state:
+            self.state = state
+
+    def event_loop(self):
         self.status.init()
-        self.ui.draw()
+        self.state.draw()
 
         for i in xrange(100):
-            self.ui.draw()
+            self.state.draw()
 
             fds = [sys.stdin]
             if self.mpcw.connected:
@@ -377,7 +449,7 @@ class Main:
 
             if sys.stdin in active:
                 while self.handle_tb_event(self.termbox.peek_event(10)):
-                    self.ui.draw()
+                    self.state.draw()
 
             self.status.update(self.mpcw.get_changes())
 
@@ -392,14 +464,9 @@ class Main:
             (type, ch, key, mod, w, h) = event
 
             if type == termbox.EVENT_RESIZE:
-                self.ui.update_size(w, h)
+                self.state.ui.update_size(w, h)
             elif type == termbox.EVENT_KEY:
-                self.key_event(ch, key, mod)
-
-    def key_event(self, ch, key, mode):
-        func = self.bindings.get(ch, key)
-        if func:
-            func()
+                self.state.key_event(ch, key, mod)
 
     def setup(self):
         self.termbox = termbox.Termbox()
@@ -408,36 +475,9 @@ class Main:
         # Setup MPD
         self.mpcw.connect()
 
-        # Setup UI
-        self.playlist_ui = PlaylistUI(self.termbox, self.status)
-
-        self.ui = UI(self.termbox)
-        self.ui.set_top(PlayerInfoUI(self.termbox, self.status))
-        self.ui.set_bottom(CurrentSongUI(self.termbox, self.status))
-        self.ui.set_main(self.playlist_ui)
-
-        self.bindings = Keybindings(
-                {"q": lambda: sys.exit(0),
-                  "j": lambda: self.playlist_ui.select(1, True),
-                  "k": lambda: self.playlist_ui.select(-1, True),
-                  "g": lambda: self.playlist_ui.select(0),
-                  "G": lambda: self.playlist_ui.select(sys.maxsize),
-                  "P": lambda: self.mpcw.player("play") if
-                      self.status.state != "play" else
-                      self.mpcw.player("pause"),
-                  "s": lambda: self.mpcw.player("stop"),
-                  "n": lambda: self.mpcw.player("next"),
-                  "p": lambda: self.mpcw.player("previous")
-                },
-                {
-                    termbox.KEY_ENTER: lambda:
-                        self.mpcw.player("play", self.playlist_ui.selected())
-                        if self.playlist_ui.selected() > 0 else False,
-                    termbox.KEY_ARROW_UP: lambda:
-                        self.playlist_ui.select(-1, True),
-                    termbox.KEY_ARROW_DOWN: lambda:
-                        self.playlist_ui.select(1, True),
-                })
+        self.states = { "playlist":
+                PlaylistState(self, self.mpcw, self.status, self.termbox) }
+        self.state = self.states["playlist"]
 
 
 def redirect_std(path):

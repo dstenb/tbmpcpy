@@ -12,149 +12,8 @@ from socket import error as SocketError
 
 from ui import *
 from playlist import *
+from states import *
 from status import *
-
-
-UPDATE_RATE = 2000
-
-
-def time_in_millis():
-    return int(round(time.time() * 1000))
-
-
-def length_str(time):
-    m = time / 60
-    s = time % 60
-
-    if m == 0:
-        return "--:--"
-    elif m > 99:
-        return str(m) + "m"
-    return str(m).zfill(2) + ":" + str(s).zfill(2)
-
-
-class PlaylistUI(Drawable, StatusListener):
-
-    def __init__(self, tb, status):
-        self.tb = tb
-        self.status = status
-        self.sel = 0
-        self.start = 0
-
-    def draw(self):
-        l = len(self.status.playlist)
-        print("draw")
-        numw = int(math.floor(math.log10(l))) + 2 if l > 0 else 0
-        for y in range(self.h):
-            pos = y + self.start
-
-            if y < l:
-                # TODO
-                song = self.status.playlist[pos]
-                num_str = "%s " % str(pos + 1)
-                time_str = " [%s] " % length_str(song.time)
-
-                f = Format()
-                f.add(num_str.rjust(numw + 1), termbox.BLUE, termbox.BLACK)
-                f.add(song.artist, termbox.RED, termbox.BLACK)
-                f.add(" - ", termbox.WHITE, termbox.BLACK)
-                f.add(song.title, termbox.YELLOW, termbox.BLACK)
-                f.add(" (", termbox.WHITE, termbox.BLACK)
-                f.add(song.album, termbox.GREEN, termbox.BLACK)
-                f.add(")", termbox.WHITE, termbox.BLACK)
-                f.replace(self.w - 9, time_str, termbox.BLUE, termbox.BLACK)
-
-                if y == self.sel:
-                    f.set_color(termbox.BLACK, termbox.WHITE)
-                if song is self.status.current:
-                    f.set_bold()
-                    f.replace(0, ">", termbox.BLUE, termbox.BLACK)
-
-                self.change_cells_format(0, y, f)
-            else:
-                self.change_cells_format(0, y, Format("".ljust(self.w)))
-
-    def fix_bounds(self):
-        if len(self.status.playlist) > 0:
-            self.sel = min(max(0, self.sel), len(self.status.playlist) - 1)
-            if (self.sel - self.start) + 2 >= self.h:
-                self.start = self.sel - self.h
-            if self.sel < self.start:
-                self.start = self.sel
-            self.start = min(max(0, self.start), len(self.status.playlist) - 1)
-
-    def current_changed(self):
-        self.fix_bounds()
-
-    def playlist_updated(self):
-        if len(self.status.playlist) > 0 and self.sel == -1:
-            self.start = self.sel = 0
-        else:
-            self.start = self.sel = -1
-        self.fix_bounds()
-
-    def select(self, index, rel=False):
-        if rel:
-            self.sel += index
-        else:
-            self.sel = index
-        self.fix_bounds()
-
-    def selected(self):
-        return self.sel
-
-
-class CurrentSongUI(Drawable, StatusListener):
-
-    def __init__(self, tb, status):
-        self.tb = tb
-        self.set_pref_dim(-1, 1)
-        self.set_dim(0, 0, tb.width(), 1)
-        self.status = status
-        status.add_listener(self)
-
-    def draw(self):
-        c = (termbox.WHITE, termbox.BLACK)
-        self.change_cells(0, 0, self.line(self.status.current),
-                c[0], c[1], self.w)
-
-    def line(self, song):
-        state_dict = {"play":  ">", "stop": "[]", "pause": "||"}
-        line = " " + state_dict.get(self.status.state, "hej")
-        if song:
-            line += " %s - %s - %s" % (song.artist, song.title, song.album)
-        return line
-
-
-class PlayerInfoUI(Drawable, StatusListener):
-
-    def __init__(self, tb, status):
-        self.tb = tb
-        self.set_pref_dim(-1, 1)
-        self.set_dim(0, 0, tb.width(), 1)
-        self.status = status
-        self.status.add_listener(self)
-
-    def draw(self):
-        def sy(m):
-            symbols = {"random": "r",
-                    "repeat": "R",
-                    "single": "s",
-                    "consume": "c"
-            }
-
-            return symbols[m] if self.status.mode[m] else "-"
-
-        c = (termbox.WHITE, termbox.BLACK)
-        line = " Playlist [%s%s%s%s] " % (sy("random"), sy("repeat"),
-                sy("single"), sy("consume"))
-        self.change_cells(0, 0, line, c[0], c[1], self.w)
-
-
-class BottomUI(Drawable):
-
-    def draw(self):
-        self.components = []
 
 
 class Changes:
@@ -289,12 +148,15 @@ class MPDStatus:
         if len(changes) == 0:
             return
 
+        update_current = False
+
         results = self.mpcw.status()
         print(results)
 
         if "playlist" in changes:
             print(":: updating playlist")
             self._set_playlist(self.mpcw.playlist(), int(results["playlist"]))
+            update_current = True
 
         if "player" in changes:
             print(":: updating player")
@@ -307,7 +169,10 @@ class MPDStatus:
             prev_id = self.current.songid if self.current else -1
 
             if curr_id != prev_id:
-                self._set_current(int(results.get("song", -1)))
+                update_current = True
+
+        if update_current:
+            self._set_current(int(results.get("song", -1)))
 
         if "options" in changes:
             print(":: updating changes")
@@ -323,87 +188,6 @@ class MPDStatus:
             print(":: updating stored_playlist")
             # TODO
 
-
-class Keybindings:
-    def __init__(self, _ch={}, _key={}):
-        self.by_ch = _ch
-        self.by_key = _key
-
-    def add_ch(self, ch, func):
-        self.by_ch[ch] = func
-
-    def add_key(self, key, func):
-        self.by_key[key] = func
-
-    def get(self, ch, key):
-        func = self.by_ch.get(ch, None) or self.by_key.get(key, None)
-        return func
-
-
-class State:
-
-    def __init__(self, mpcw, status, termbox):
-        self.mpcw = mpcw
-        self.status = status
-        self.termbox = termbox
-
-    def draw(self):
-        self
-
-    def key_event(self, ch, key, mod):
-        self
-
-
-class StateListener:
-
-    def change_state(self, str):
-        self
-
-class PlaylistState(State):
-
-    def __init__(self, _listener, _mpcw, _status, _termbox):
-        self.listener = _listener
-        self.mpcw = _mpcw
-        self.status = _status
-        self.termbox = _termbox
-
-        self.playlist_ui = PlaylistUI(self.termbox, self.status)
-        self.ui = UI(self.termbox)
-        self.ui.set_top(PlayerInfoUI(self.termbox, self.status))
-        self.ui.set_bottom(CurrentSongUI(self.termbox, self.status))
-        self.ui.set_main(self.playlist_ui)
-
-        self.bindings = Keybindings(
-                {"q": lambda: sys.exit(0),
-                  "j": lambda: self.playlist_ui.select(1, True),
-                  "k": lambda: self.playlist_ui.select(-1, True),
-                  "g": lambda: self.playlist_ui.select(0),
-                  "G": lambda: self.playlist_ui.select(sys.maxsize),
-                  "P": lambda: self.mpcw.player("play") if
-                      self.status.state != "play" else
-                      self.mpcw.player("pause"),
-                  "s": lambda: self.mpcw.player("stop"),
-                  "n": lambda: self.mpcw.player("next"),
-                  "p": lambda: self.mpcw.player("previous"),
-                  "2": lambda: self.listener.change_state("browser")
-                },
-                {
-                    termbox.KEY_ENTER: lambda:
-                        self.mpcw.player("play", self.playlist_ui.selected())
-                        if self.playlist_ui.selected() > 0 else False,
-                    termbox.KEY_ARROW_UP: lambda:
-                        self.playlist_ui.select(-1, True),
-                    termbox.KEY_ARROW_DOWN: lambda:
-                        self.playlist_ui.select(1, True),
-                })
-
-    def draw(self):
-        self.ui.draw()
-
-    def key_event(self, ch, key, mod):
-        func = self.bindings.get(ch, key)
-        if func:
-            func()
 
 class Main(StateListener):
 
@@ -464,7 +248,8 @@ class Main(StateListener):
             (type, ch, key, mod, w, h) = event
 
             if type == termbox.EVENT_RESIZE:
-                self.state.ui.update_size(w, h)
+                for k, v in self.states.iteritems():
+                    v.ui.update_size(w, h)
             elif type == termbox.EVENT_KEY:
                 self.state.key_event(ch, key, mod)
 
@@ -475,8 +260,9 @@ class Main(StateListener):
         # Setup MPD
         self.mpcw.connect()
 
-        self.states = { "playlist":
-                PlaylistState(self, self.mpcw, self.status, self.termbox) }
+        args = [self, self.mpcw, self.status, self.termbox]
+        self.states = {"playlist": PlaylistState(*args),
+                "browser": BrowserState(*args)}
         self.state = self.states["playlist"]
 
 

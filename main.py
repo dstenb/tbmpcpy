@@ -106,7 +106,10 @@ class MPDStatus:
 
     def _set_current(self, pos):
         try:
-            self.current = self.playlist[pos]
+            if pos > 0:
+                self.current = self.playlist[pos]
+            else:
+                self.current = None
         except:
             self.current = None
         for o in self.listeners:

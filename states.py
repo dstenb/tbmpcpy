@@ -1,6 +1,7 @@
 from status import *
 from ui import *
 import math
+import sys
 
 class Keybindings:
     def __init__(self, _ch={}, _key={}):
@@ -168,7 +169,7 @@ class PlaylistUI(Drawable, StatusListener):
                 f.add(")", termbox.WHITE, termbox.BLACK)
                 f.replace(self.w - 9, time_str, termbox.BLUE, termbox.BLACK)
 
-                if y == self.sel:
+                if pos == self.sel:
                     f.set_color(termbox.BLACK, termbox.WHITE)
                 if song is self.status.current:
                     f.set_bold()
@@ -181,8 +182,8 @@ class PlaylistUI(Drawable, StatusListener):
     def fix_bounds(self):
         if len(self.status.playlist) > 0:
             self.sel = min(max(0, self.sel), len(self.status.playlist) - 1)
-            if (self.sel - self.start) + 2 >= self.h:
-                self.start = self.sel - self.h
+            if (self.sel - self.start) >= self.h:
+                self.start = self.sel - self.h + 1
             if self.sel < self.start:
                 self.start = self.sel
             self.start = min(max(0, self.start), len(self.status.playlist) - 1)

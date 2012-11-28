@@ -112,11 +112,13 @@ class PlayerInfoUI(Drawable, StatusListener):
 
             return symbols[m] if self.status.mode[m] else "-"
 
-        options = "[%s%s%s%s]" % (sy("random"), sy("repeat"),
-                sy("single"), sy("consume"))
+        options = ""
+        for k, v in self.status.mode.iteritems():
+            if v:
+                options += " [" + k + "] "
         f = Format()
         f.add(" %s" % self.custom_str, termbox.WHITE, termbox.BLACK)
-        f.replace(self.w - 7, options, termbox.WHITE, termbox.BLACK)
+        f.replace(self.w - len(options), options, termbox.WHITE, termbox.BLACK)
         self.change_cells_format(0, 0, f)
 
 

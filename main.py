@@ -10,8 +10,8 @@ import traceback
 from mpd import (MPDClient, CommandError)
 from socket import error as SocketError
 
+from list import *
 from ui import *
-from playlist import *
 from states import *
 from status import *
 
@@ -96,6 +96,7 @@ class MPDStatus:
 
     def __init__(self, mpcw):
         self.mpcw = mpcw
+        self.browser = Browser()
         self.playlist = Playlist()
         self.mode = {"random": False, "repeat": False,
                 "single": False, "consume": False
@@ -106,7 +107,7 @@ class MPDStatus:
 
     def _set_current(self, pos):
         try:
-            if pos > 0:
+            if pos >= 0:
                 self.current = self.playlist[pos]
             else:
                 self.current = None
@@ -131,7 +132,7 @@ class MPDStatus:
         songs = []
         for d in _songs:
             songs.append(Song(d))
-        self.playlist.update(songs, version)
+        self.playlist.set(songs, version)
         for o in self.listeners:
             o.playlist_changed()
 

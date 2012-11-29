@@ -41,7 +41,7 @@ class Format:
         self.colors = _cl(self.s, fg, bg)
 
 
-class Drawable:
+class Drawable(object):
 
     def __init__(self, tb):
         self.tb = tb

@@ -1,4 +1,4 @@
-from playlist import *
+from list import *
 import traceback
 
 class Song():

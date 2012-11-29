@@ -143,46 +143,52 @@ class MPDStatus:
         results = self.mpcw.status()
         self._set_playlist(self.mpcw.playlist(), int(results["playlist"]))
         self._set_state(results.get("state", "unknown"))
+        self.update_options(results)
+        self._set_current(int(results.get("song", -1)))
+
+    def update_options(self, results):
+        print(":: updating changes")
+        self._set_mode("consume", _get_bool(results, "consume"))
         self._set_mode("random", _get_bool(results, "random"))
         self._set_mode("repeat", _get_bool(results, "repeat"))
         self._set_mode("single", _get_bool(results, "single"))
-        self._set_current(int(results.get("song", -1)))
+
+    def update_playlist(self, results):
+        print(":: updating playlist")
+        self._set_playlist(self.mpcw.playlist(), int(results["playlist"]))
+
+    def update_player(self, results):
+        print(":: updating player")
+
+        # Update state
+        self._set_state(results.get("state", "unknown"))
+
+        # Update current song if necessary
+        curr_id = int(results.get("songid", -1))
+        prev_id = self.current.songid if self.current else -1
+
+        return curr_id != prev_id
 
     def update(self, changes):
         if len(changes) == 0:
             return
 
-        update_current = False
-
         results = self.mpcw.status()
+        update_current = False
         print(results)
 
         if "playlist" in changes:
-            print(":: updating playlist")
-            self._set_playlist(self.mpcw.playlist(), int(results["playlist"]))
+            self.update_playlist(results)
             update_current = True
 
         if "player" in changes:
-            print(":: updating player")
-
-            # Update state
-            self._set_state(results.get("state", "unknown"))
-
-            # Update current song if necessary
-            curr_id = int(results.get("songid", -1))
-            prev_id = self.current.songid if self.current else -1
-
-            if curr_id != prev_id:
-                update_current = True
+            update_current = self.update_player(results) or update_current
 
         if update_current:
             self._set_current(int(results.get("song", -1)))
 
         if "options" in changes:
-            print(":: updating changes")
-            self._set_mode("random", _get_bool(results, "random"))
-            self._set_mode("repeat", _get_bool(results, "repeat"))
-            self._set_mode("single", _get_bool(results, "single"))
+            self.update_options(results)
 
         if "output" in changes:
             print(":: updating output")
@@ -214,7 +220,8 @@ class Main(StateListener):
         self.status.init()
         self.state.draw()
 
-        for i in xrange(100):
+        #for i in xrange(100):
+        while True:
             self.state.draw()
 
             fds = [sys.stdin]

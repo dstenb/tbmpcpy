@@ -82,12 +82,12 @@ class CurrentSongUI(Drawable, StatusListener):
 
     def draw(self):
         c = (termbox.WHITE, termbox.BLACK)
-        self.change_cells(0, 0, self.line(self.status.current),
+        self.change_cells(0, 0, self._line(self.status.current),
                 c[0], c[1], self.w)
 
-    def line(self, song):
+    def _line(self, song):
         state_dict = {"play":  ">", "stop": "[]", "pause": "||"}
-        line = " " + state_dict.get(self.status.state, "hej")
+        line = " " + state_dict.get(self.status.state, "")
         if song:
             line += " %s - %s - %s" % (song.artist, song.title, song.album)
         return line
@@ -104,23 +104,17 @@ class PlayerInfoUI(Drawable, StatusListener):
         self.custom_str = custom_str
 
     def draw(self):
-        def sy(m):
-            symbols = {"random": "r",
-                    "repeat": "R",
-                    "single": "s",
-                    "consume": "c"
-            }
-
-            return symbols[m] if self.status.mode[m] else "-"
-
-        options = ""
-        for k, v in self.status.mode.iteritems():
+        options = Format()
+        for k, v in sorted(self.status.options.iteritems()):
             if v:
-                options += " [" + k + "] "
+                options.add(" [" + k + "] ", termbox.WHITE, termbox.BLACK)
+            else:
+                options.add(" [" + k + "] ", termbox.BLACK, termbox.BLACK)
+        options.set_bold()
         f = Format()
         f.add(" %s" % self.custom_str, termbox.WHITE, termbox.BLACK)
-        f.replace(self.w - len(options), options, termbox.WHITE, termbox.BLACK)
         self.change_cells_format(0, 0, f)
+        self.change_cells_format(self.w - len(options.s), 0, options)
 
 
 def time_in_millis():
@@ -136,11 +130,6 @@ def length_str(time):
     elif m > 99:
         return str(m) + "m"
     return str(m).zfill(2) + ":" + str(s).zfill(2)
-
-
-class List(object):
-    ''''''
-
 
 
 class ListUI(Drawable):

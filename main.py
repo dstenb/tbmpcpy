@@ -98,35 +98,28 @@ class MPDStatus:
         self.mpcw = mpcw
         self.browser = Browser()
         self.playlist = Playlist()
-        self.mode = {"random": False, "repeat": False,
-                "single": False, "consume": False
-        }
+        self.options = {"consume": False,
+                "random": False,
+                "repeat": False,
+                "single": False,
+                "xfade": False}
         self.current = None
         self.state = ""
         self.listeners = []
 
     def _set_current(self, pos):
         try:
-            if pos >= 0:
-                self.current = self.playlist[pos]
-            else:
-                self.current = None
+            self.current = self.playlist[pos] if pos >= 0 else None
         except:
             self.current = None
         for o in self.listeners:
             o.current_changed()
 
-    def _set_mode(self, m, b):
-        if self.mode[m] != b:
-            self.mode[m] = b
+    def _set_option(self, opt, b):
+        if self.options[opt] != b:
+            self.options[opt] = b
             for o in self.listeners:
-                o.mode_changed(m, b)
-
-    def _set_state(self, state):
-        if self.state != state:
-            self.state = state
-            for o in self.listeners:
-                o.state_changed(state)
+                o.option_changed(opt, b)
 
     def _set_playlist(self, _songs, version):
         songs = []
@@ -136,28 +129,36 @@ class MPDStatus:
         for o in self.listeners:
             o.playlist_changed()
 
+    def _set_state(self, state):
+        if self.state != state:
+            self.state = state
+            for o in self.listeners:
+                o.state_changed(state)
+
     def add_listener(self, o):
         self.listeners.append(o)
 
     def init(self):
         results = self.mpcw.status()
+        print(results)
         self._set_playlist(self.mpcw.playlist(), int(results["playlist"]))
         self._set_state(results.get("state", "unknown"))
-        self.update_options(results)
+        self._update_options(results)
         self._set_current(int(results.get("song", -1)))
 
-    def update_options(self, results):
+    def _update_options(self, results):
         print(":: updating changes")
-        self._set_mode("consume", _get_bool(results, "consume"))
-        self._set_mode("random", _get_bool(results, "random"))
-        self._set_mode("repeat", _get_bool(results, "repeat"))
-        self._set_mode("single", _get_bool(results, "single"))
+        self._set_option("consume", _get_bool(results, "consume"))
+        self._set_option("random", _get_bool(results, "random"))
+        self._set_option("repeat", _get_bool(results, "repeat"))
+        self._set_option("single", _get_bool(results, "single"))
+        self._set_option("xfade", _get_bool(results, "xfade"))
 
-    def update_playlist(self, results):
+    def _update_playlist(self, results):
         print(":: updating playlist")
         self._set_playlist(self.mpcw.playlist(), int(results["playlist"]))
 
-    def update_player(self, results):
+    def _update_player(self, results):
         print(":: updating player")
 
         # Update state
@@ -178,17 +179,17 @@ class MPDStatus:
         print(results)
 
         if "playlist" in changes:
-            self.update_playlist(results)
+            self._update_playlist(results)
             update_current = True
 
         if "player" in changes:
-            update_current = self.update_player(results) or update_current
+            update_current = self._update_player(results) or update_current
 
         if update_current:
             self._set_current(int(results.get("song", -1)))
 
         if "options" in changes:
-            self.update_options(results)
+            self._update_options(results)
 
         if "output" in changes:
             print(":: updating output")
@@ -209,18 +210,12 @@ class Main(StateListener):
         self.changes = Changes()
 
     def change_state(self, s):
-        state = self.states.get(s, None)
-        print(s)
-        assert(state)
-
-        if state:
-            self.state = state
+        self.state = self.states[s]
 
     def event_loop(self):
         self.status.init()
         self.state.draw()
 
-        #for i in xrange(100):
         while True:
             self.state.draw()
 
@@ -287,11 +282,6 @@ def redirect_std(path):
 
 def main():
     log_file = redirect_std("log")
-
-    colors = {"pl_normal": (termbox.WHITE, termbox.BLACK),
-            "pl_selected": (termbox.BLUE, termbox.BLACK),
-            "pl_current": (termbox.YELLOW, termbox.BLACK)
-    }
 
     cfg = {"host": "localhost",
             "port": 6600,

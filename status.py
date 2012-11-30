@@ -18,7 +18,7 @@ class StatusListener():
     def current_changed(self):
         self
 
-    def mode_changed(self, m, b):
+    def option_changed(self, o, b):
         self
 
     def playlist_changed(self):

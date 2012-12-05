@@ -181,28 +181,43 @@ class PlaylistUI(ListUI, StatusListener):
         self.status.add_listener(self)
 
     def _format(self, song, y, pos):
-        f = Format()
+        left, right = Format(), Format()
 
         numw = 0
         if len(self.list) > 0:
             numw = int(math.floor(math.log10(len(self.list)))) + 2
         num_str = "%s " % str(pos + 1)
         time_str = " [%s] " % length_str(song.time)
-        f.add(num_str.rjust(numw + 1), termbox.BLUE, termbox.BLACK)
-        f.add(song.artist, termbox.RED, termbox.BLACK)
-        f.add(" - ", termbox.WHITE, termbox.BLACK)
-        f.add(song.title, termbox.YELLOW, termbox.BLACK)
-        f.add(" (", termbox.WHITE, termbox.BLACK)
-        f.add(song.album, termbox.GREEN, termbox.BLACK)
-        f.add(")", termbox.WHITE, termbox.BLACK)
-        f.replace(self.w - 9, time_str, termbox.BLUE, termbox.BLACK)
+        left.add(num_str.rjust(numw + 1), termbox.BLUE, termbox.BLACK)
+        left.add(song.artist, termbox.RED, termbox.BLACK)
+        left.add(" - ", termbox.WHITE, termbox.BLACK)
+        left.add(song.title, termbox.YELLOW, termbox.BLACK)
+        left.add(" (", termbox.WHITE, termbox.BLACK)
+        left.add(song.album, termbox.GREEN, termbox.BLACK)
+        left.add(")", termbox.WHITE, termbox.BLACK)
+
+        right.add(time_str, termbox.BLUE, termbox.BLACK)
 
         if pos == self.sel:
-            f.set_color(termbox.BLACK, termbox.WHITE)
+            left.set_color(termbox.BLACK, termbox.WHITE)
+            right.set_color(termbox.BLACK, termbox.WHITE)
+            left.add("".ljust(max(0, self.w - len(left.s))), termbox.BLACK, termbox.WHITE)
         if song is self.status.current:
-            f.set_bold()
-            f.replace(0, ">", termbox.BLUE, termbox.BLACK)
-        return f
+            left.set_bold()
+            right.set_bold()
+            left.replace(0, ">", termbox.BLUE, termbox.BLACK)
+        return left, right
+
+    def draw(self):
+        length = len(self.list)
+        for y in range(self.h):
+            pos = y + self.start
+            if pos < length:
+                left, right = self._format(self.list[pos], y, pos)
+                self.change_cells_format(0, y, left)
+                self.change_cells_format(self.w - len(right.s), y, right)
+
+
 
     def playlist_updated(self):
         if len(self.status.playlist) > 0 and self.sel == -1:

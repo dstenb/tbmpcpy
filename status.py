@@ -14,6 +14,24 @@ class Song():
         self.songid = int(d.get("id", -1))
 
 
+class Progress(object):
+
+    def __init__(self):
+        self.elapsed_time = 0
+        self.total_time = 0
+
+    def elapsed(self):
+        if self.total_time > 0:
+            return (self.elapsed_time / float(self.total_time))
+        return -1
+
+    def set_elapsed(self, t):
+        self.elapsed_time = t
+
+    def set_time(self, t):
+        self.total_time = t
+
+
 class StatusListener():
 
     def current_changed(self):
@@ -39,6 +57,7 @@ class Status:
         self.mpdw = mpdw
         self.browser = Browser()
         self.playlist = Playlist()
+        self.progress = Progress()
         self.options = {"consume": False,
                 "random": False,
                 "repeat": False,
@@ -53,8 +72,13 @@ class Status:
             self.current = self.playlist[pos] if pos >= 0 else None
         except:
             self.current = None
+        self.progress.set_time(self.current.time if self.current else 0)
+
         for o in self.listeners:
             o.current_changed()
+
+    def _set_elapsed(self, t):
+        self.progress.set_elapsed(t)
 
     def _set_option(self, opt, b):
         if self.options[opt] != b:
@@ -86,6 +110,7 @@ class Status:
         self._set_state(results.get("state", "unknown"))
         self._update_options(results)
         self._set_current(int(results.get("song", -1)))
+        self._set_elapsed(int(results.get("elapsed", "0").split(".")[0]))
 
     def _update_options(self, results):
         print(":: updating changes")
@@ -119,6 +144,8 @@ class Status:
         update_current = False
         print(results)
 
+        self._set_elapsed(int(results.get("elapsed", "0").split(".")[0]))
+
         if "playlist" in changes:
             self._update_playlist(results)
             update_current = True
@@ -139,3 +166,6 @@ class Status:
         if "stored_playlist" in changes:
             print(":: updating stored_playlist")
             # TODO
+
+    def is_playing(self):
+        return self.state == "play"

@@ -3,6 +3,23 @@ from ui import *
 import math
 import sys
 
+# Progress bar formatting
+marker_c, marker_e, marker_r = "+", "-", "-"
+color_elapsed = (termbox.WHITE, termbox.BLACK)
+color_remaining = (termbox.BLACK, termbox.BLACK)
+
+
+def length_str(time):
+    m = time / 60
+    s = time % 60
+
+    if m <= 0:
+        return "--:--"
+    elif m > 99:
+        return str(m) + "m"
+    return str(m).zfill(2) + ":" + str(s).zfill(2)
+
+
 class Keybindings:
     def __init__(self, _ch={}, _key={}):
         self.by_ch = _ch
@@ -71,12 +88,21 @@ class StateListener:
         self
 
 
+def progress_bar_format(w, elapsed):
+    ew = max(0, int(elapsed * w))
+    f = Format()
+    f.add(marker_c.rjust(ew, marker_e), *color_elapsed)
+    f.add("".ljust(w - ew, marker_r), *color_remaining)
+    f.set_bold()
+    return f
+
+
 class CurrentSongUI(Drawable, StatusListener):
 
     def __init__(self, tb, status):
         self.tb = tb
-        self.set_pref_dim(-1, 1)
-        self.set_dim(0, 0, tb.width(), 1)
+        self.set_pref_dim(-1, 2)
+        self.set_dim(0, 0, tb.width(), 2)
         self.status = status
         status.add_listener(self)
 
@@ -84,6 +110,11 @@ class CurrentSongUI(Drawable, StatusListener):
         c = (termbox.WHITE, termbox.BLACK)
         self.change_cells(0, 0, self._line(self.status.current),
                 c[0], c[1], self.w)
+
+        elapsed = self.status.progress.elapsed()
+        if elapsed >= 0:
+            f = progress_bar_format(self.w, elapsed)
+            self.change_cells_format(0, 1, f)
 
     def _line(self, song):
         state_dict = {"play":  ">", "stop": "[]", "pause": "||"}
@@ -114,22 +145,8 @@ class PlayerInfoUI(Drawable, StatusListener):
         f = Format()
         f.add(" %s" % self.custom_str, termbox.WHITE, termbox.BLACK)
         self.change_cells_format(0, 0, f)
-        self.change_cells_format(self.w - len(options.s), 0, options)
+        self.change_cells_format(max(0, self.w - len(options.s)), 0, options)
 
-
-def time_in_millis():
-    return int(round(time.time() * 1000))
-
-
-def length_str(time):
-    m = time / 60
-    s = time % 60
-
-    if m == 0:
-        return "--:--"
-    elif m > 99:
-        return str(m) + "m"
-    return str(m).zfill(2) + ":" + str(s).zfill(2)
 
 
 class ListUI(Drawable):

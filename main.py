@@ -14,6 +14,10 @@ from status import *
 from wrapper import *
 
 
+def time_in_millis():
+    return int(round(time.time() * 1000))
+
+
 class Main(StateListener):
 
     def __init__(self, cfg):
@@ -29,6 +33,8 @@ class Main(StateListener):
         self.status.init()
         self.state.draw()
 
+        last = time_in_millis()
+
         while True:
             self.state.draw()
 
@@ -38,13 +44,24 @@ class Main(StateListener):
                 self.mpdw.idle()
 
             try:
-                active, _, _ = select.select(fds, [], [], 5)
+                active, _, _ = select.select(fds, [], [], 1)
             except select.error, err:
                 if err[0] == 4:
                     self.handle_tb_event(self.termbox.peek_event(10))
                     active = []
                 else:
                     raise err
+
+            # Update elapsed time if playing
+            if self.status.is_playing():
+                curr = time_in_millis()
+                diff = (curr - last)
+
+                if diff >= 1000:
+                    self.status.progress.elapsed_time += (diff / 1000)
+                last = curr
+            else:
+                last = time_in_millis()
 
             if self.mpdw in active:
                 print(":: Mpd")

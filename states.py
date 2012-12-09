@@ -1,10 +1,12 @@
+# -*- encoding: utf-8 -*-
+
 from status import *
 from ui import *
 import math
 import sys
 
 # Progress bar formatting
-marker_c, marker_e, marker_r = "+", "-", "-"
+marker_c, marker_e, marker_r = u"╼", u"─", u"·"
 color_elapsed = (termbox.WHITE, termbox.BLACK)
 color_remaining = (termbox.BLACK, termbox.BLACK)
 
@@ -88,15 +90,6 @@ class StateListener:
         self
 
 
-def progress_bar_format(w, elapsed):
-    ew = max(0, int(elapsed * w))
-    f = Format()
-    f.add(marker_c.rjust(ew, marker_e), *color_elapsed)
-    f.add("".ljust(w - ew, marker_r), *color_remaining)
-    f.set_bold()
-    return f
-
-
 class CurrentSongUI(Drawable, StatusListener):
 
     def __init__(self, tb, status):
@@ -108,20 +101,32 @@ class CurrentSongUI(Drawable, StatusListener):
 
     def draw(self):
         c = (termbox.WHITE, termbox.BLACK)
-        self.change_cells(0, 0, self._line(self.status.current),
-                c[0], c[1], self.w)
+        song_line = self._song_format(self.status.current)
+        self.change_cells_format(0, 0, song_line)
 
         elapsed = self.status.progress.elapsed()
         if elapsed >= 0:
-            f = progress_bar_format(self.w, elapsed)
-            self.change_cells_format(0, 1, f)
+            progress = self._progress_bar_format(elapsed)
+            self.change_cells_format(0, 1, progress)
 
-    def _line(self, song):
-        state_dict = {"play":  ">", "stop": "[]", "pause": "||"}
-        line = " " + state_dict.get(self.status.state, "")
+    def _progress_bar_format(self, elapsed):
+        ew = max(0, int(elapsed * self.w))
+        f = Format()
+        f.add(marker_c.rjust(ew, marker_e), *color_elapsed)
+        f.add(u"".ljust(self.w - ew, marker_r), *color_remaining)
+        f.set_bold()
+        return f
+
+    # symbols █ ►▮
+    def _song_format(self, song):
+        f = Format()
+        state_dict = {"play":  u">", "stop": "[]", "pause": u"||"}
+        f.add(" " + state_dict.get(self.status.state, ""),
+                termbox.WHITE, termbox.BLACK)
         if song:
-            line += " %s - %s - %s" % (song.artist, song.title, song.album)
-        return line
+            f.add(" %s - %s - %s" % (song.artist, song.title, song.album),
+                    termbox.WHITE, termbox.BLACK)
+        return f
 
 
 class PlayerInfoUI(Drawable, StatusListener):
@@ -134,19 +139,24 @@ class PlayerInfoUI(Drawable, StatusListener):
         self.status.add_listener(self)
         self.custom_str = custom_str
 
-    def draw(self):
-        options = Format()
-        for k, v in sorted(self.status.options.iteritems()):
-            if v:
-                options.add(" [" + k + "] ", termbox.WHITE, termbox.BLACK)
-            else:
-                options.add(" [" + k + "] ", termbox.BLACK, termbox.BLACK)
-        options.set_bold()
+    def _options_format(self):
+        f = Format()
+        for o, b in sorted(self.status.options.iteritems()):
+            f.add(" [" + o + "] ", termbox.WHITE if b else termbox.BLACK,
+                    termbox.BLACK)
+        f.set_bold()
+        return f
+
+    def _string_format(self):
         f = Format()
         f.add(" %s" % self.custom_str, termbox.WHITE, termbox.BLACK)
-        self.change_cells_format(0, 0, f)
-        self.change_cells_format(max(0, self.w - len(options.s)), 0, options)
+        return f
 
+    def draw(self):
+        options = self._options_format()
+        string = self._string_format()
+        self.change_cells_format(0, 0, string)
+        self.change_cells_format(max(0, self.w - len(options.s)), 0, options)
 
 
 class ListUI(Drawable):

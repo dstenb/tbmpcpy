@@ -4,7 +4,7 @@
 import math
 
 from status import *
-from tb import *
+from ui import *
 
 # Progress bar formatting
 marker_c, marker_e, marker_r = u"╼", u"─", u"·"

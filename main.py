@@ -7,14 +7,11 @@ import termbox
 import time
 import traceback
 
-from list import *
-#from ui import *
-#from states import *
-from status import *
-from wrapper import *
-
 from components import *
-from tb import *
+from list import *
+from status import *
+from ui import *
+from wrapper import *
 
 
 def time_in_millis():
@@ -34,6 +31,7 @@ class Main(object):
         for i in xrange(10):
             self.ui.draw()
 
+            active = []
             fds = [sys.stdin]
             if self.mpd.connected:
                 fds.append(self.mpd)
@@ -44,7 +42,6 @@ class Main(object):
             except select.error, err:
                 if err[0] == 4:
                     self.handle_tb_event(self.termbox.peek_event(10))
-                    active = []
                 else:
                     raise err
 

@@ -72,5 +72,3 @@ class MPDWrapper():
 
     def status(self):
         return self.mpd.status()
-
-

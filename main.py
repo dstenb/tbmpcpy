@@ -8,40 +8,36 @@ import time
 import traceback
 
 from list import *
-from ui import *
-from states import *
+#from ui import *
+#from states import *
 from status import *
 from wrapper import *
+
+from components import *
+from tb import *
 
 
 def time_in_millis():
     return int(round(time.time() * 1000))
 
 
-class Main(StateListener):
+class Main(object):
 
     def __init__(self, cfg):
         self.termbox = None
         self.cfg = cfg
-        self.mpdw = MPDWrapper(cfg["host"], cfg["port"])
+        self.mpd = MPDWrapper(cfg["host"], cfg["port"])
         self.changes = Changes()
 
-    def change_state(self, s):
-        self.state = self.states[s]
-
     def event_loop(self):
-        self.status.init()
-        self.state.draw()
-
         last = time_in_millis()
-
-        while True:
-            self.state.draw()
+        for i in xrange(10):
+            self.ui.draw()
 
             fds = [sys.stdin]
-            if self.mpdw.connected:
-                fds.append(self.mpdw)
-                self.mpdw.idle()
+            if self.mpd.connected:
+                fds.append(self.mpd)
+                self.mpd.idle()
 
             try:
                 active, _, _ = select.select(fds, [], [], 1)
@@ -52,53 +48,60 @@ class Main(StateListener):
                 else:
                     raise err
 
-            # Update elapsed time if playing
+            # Update elapsed time if playing (rough estimate)
             if self.status.is_playing():
                 curr = time_in_millis()
                 diff = (curr - last)
-
                 if diff >= 1000:
                     self.status.progress.elapsed_time += (diff / 1000)
                 last = curr
             else:
                 last = time_in_millis()
 
-            if self.mpdw in active:
-                print(":: Mpd")
-                self.mpdw.noidle()
+            if self.mpd in active:
+                self.mpd.noidle()
 
             if sys.stdin in active:
                 while self.handle_tb_event(self.termbox.peek_event(10)):
-                    self.state.draw()
+                    self.ui.draw()
 
-            self.status.update(self.mpdw.get_changes())
+            self.status.update(self.mpd.get_changes())
 
     def exit(self):
         if self.termbox:
             self.termbox.close()
-        self.mpdw.disconnect()
+        self.mpd.disconnect()
+
+    def handle_key_event(self, ch, key):
+        if ch:
+            if ch == "q":
+                sys.exit(0)
+            else:
+                self.progress_bar.toggle_visibility()
 
     def handle_tb_event(self, event):
         if event:
             (type, ch, key, mod, w, h) = event
 
             if type == termbox.EVENT_RESIZE:
-                for k, v in self.states.iteritems():
-                    v.ui.update_size(w, h)
+                self.ui.set_size(w, h)
             elif type == termbox.EVENT_KEY:
-                self.state.key_event(ch, key, mod)
+                self.handle_key_event(ch, key)
 
     def setup(self):
         self.termbox = termbox.Termbox()
-        self.status = Status(self.mpdw)
+        self.mpd.connect()
+        self.status = Status(self.mpd)
+        self.status.init()
 
-        # Setup MPD
-        self.mpdw.connect()
+        self.current_song = CurrentSongUI(self.termbox, self.status)
+        self.progress_bar = ProgressBarUI(self.termbox, self.status)
+        self.playlist = PlaylistUI(self.termbox, self.status)
 
-        args = [self, self.mpdw, self.status, self.termbox]
-        self.states = {"playlist": PlaylistState(*args),
-                "browser": BrowserState(*args)}
-        self.state = self.states["playlist"]
+        self.ui = VerticalLayout(self.termbox)
+        self.ui.add_bottom(self.current_song)
+        self.ui.add_bottom(self.progress_bar)
+        self.ui.set_main(self.playlist)
 
 
 def redirect_std(path):

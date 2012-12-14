@@ -51,7 +51,7 @@ class State(object):
         self.mpcw = mpcw
         self.status = status
         self.termbox = termbox
-        self.ui = UI(self.termbox)
+        self.ui = VerticalLayout(self.termbox)
 
         by_ch, by_key = {}, {}
 
@@ -157,102 +157,6 @@ class PlayerInfoUI(Drawable, StatusListener):
         string = self._string_format()
         self.change_cells_format(0, 0, string)
         self.change_cells_format(max(0, self.w - len(options.s)), 0, options)
-
-
-class ListUI(Drawable):
-
-    def __init__(self, tb, list):
-        self.tb = tb
-        self.list = list
-        self.sel = 0
-        self.start = 0
-
-    def _fix_bounds(self):
-        if len(self.list) > 0:
-            self.sel = min(max(0, self.sel), len(self.list) - 1)
-            if (self.sel - self.start) >= self.h:
-                self.start = self.sel - self.h + 1
-            if self.sel < self.start:
-                self.start = self.sel
-            self.start = min(max(0, self.start), len(self.list) - 1)
-
-    def _format(self, o, y, p):
-        s = "%5i %5i %s" % (p, y, str(o))
-        return Format(s.ljust(self.w), termbox.RED if p == self.sel else
-                termbox.WHITE)
-
-    def draw(self):
-        length = len(self.list)
-        empty = Format("".ljust(self.w))
-        for y in range(self.h):
-            pos = y + self.start
-            f = self._format(self.list[pos], y, pos) if y < length else empty
-            self.change_cells_format(0, y, f)
-
-    def select(self, index, rel=False):
-        if rel:
-            self.sel += index
-        else:
-            self.sel = index
-        self._fix_bounds()
-
-    def selected(self):
-        return self.sel
-
-
-class PlaylistUI(ListUI, StatusListener):
-
-    def __init__(self, tb, status):
-        super(PlaylistUI, self).__init__(tb, status.playlist)
-        self.status = status
-        self.status.add_listener(self)
-
-    def _format(self, song, y, pos):
-        left, right = Format(), Format()
-
-        numw = 0
-        if len(self.list) > 0:
-            numw = int(math.floor(math.log10(len(self.list)))) + 2
-        num_str = "%s " % str(pos + 1)
-        time_str = " [%s] " % length_str(song.time)
-        left.add(num_str.rjust(numw + 1), termbox.BLUE, termbox.BLACK)
-        left.add(song.artist, termbox.RED, termbox.BLACK)
-        left.add(" - ", termbox.WHITE, termbox.BLACK)
-        left.add(song.title, termbox.YELLOW, termbox.BLACK)
-        left.add(" (", termbox.WHITE, termbox.BLACK)
-        left.add(song.album, termbox.GREEN, termbox.BLACK)
-        left.add(")", termbox.WHITE, termbox.BLACK)
-
-        right.add(time_str, termbox.BLUE, termbox.BLACK)
-
-        if pos == self.sel:
-            left.set_color(termbox.BLACK, termbox.WHITE)
-            right.set_color(termbox.BLACK, termbox.WHITE)
-            left.add("".ljust(max(0, self.w - len(left.s))), termbox.BLACK, termbox.WHITE)
-        if song is self.status.current:
-            left.set_bold()
-            right.set_bold()
-            left.replace(0, ">", termbox.BLUE, termbox.BLACK)
-        return left, right
-
-    def draw(self):
-        length = len(self.list)
-        for y in range(self.h):
-            pos = y + self.start
-            if pos < length:
-                left, right = self._format(self.list[pos], y, pos)
-                self.change_cells_format(0, y, left)
-                self.change_cells_format(self.w - len(right.s), y, right)
-
-
-
-    def playlist_updated(self):
-        if len(self.status.playlist) > 0 and self.sel == -1:
-            self.start = self.sel = 0
-        else:
-            self.start = self.sel = -1
-        self._fix_bounds()
-
 
 class PlaylistState(State):
 

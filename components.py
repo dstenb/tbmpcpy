@@ -3,6 +3,7 @@
 
 import math
 
+from common import *
 from status import *
 from ui import *
 
@@ -41,6 +42,36 @@ class ProgressBarUI(Component, StatusListener):
         f.add(u"".ljust(self.w, marker_r), *color_remaining)
         f.set_bold()
         return f
+
+
+
+class MessageUI(Component, MessageListener):
+
+    def __init__(self, tb, msg):
+        super(MessageUI, self).__init__(tb)
+        self.set_pref_dim(-1, 1)
+        self.set_dim(0, 0, tb.width(), 1)
+        self.msg = msg
+        self.msg.add_listener(self)
+
+    def get_colors(self):
+        colors = {"info": (termbox.WHITE, termbox.BLACK),
+                "warning": (termbox.YELLOW, termbox.BLACK),
+                "error": (termbox.RED, termbox.BLACK)}
+        return colors[self.msg.level]
+
+    def text(self):
+        prefix = {"info": "Info", "warning": "Warning", "error": "Error"}
+        return prefix[self.msg.level] + ": " + self.msg.text
+
+    def draw(self):
+        if self.msg.has_message():
+            f = Format()
+            f.add(self.text(), *self.get_colors())
+            self.change_cells_format(0, 0, f)
+
+    def message_changed(self, msg):
+        self.show() if self.msg.has_message() else self.hide()
 
 
 class ListUI(Component):

@@ -4,18 +4,35 @@
 import select
 import sys
 import termbox
-import time
 import traceback
 
+from common import *
 from components import *
 from list import *
+from states import *
 from status import *
 from ui import *
 from wrapper import *
 
 
-def time_in_millis():
-    return int(round(time.time() * 1000))
+class UI(VerticalLayout):
+
+    def __init__(self, termbox, status, msg):
+        super(UI, self).__init__(termbox)
+
+        def create(name, cls, show, *args):
+            o = cls(*args)
+            o.show() if show else o.hide()
+            setattr(self, name, o)
+            return o
+
+        self.add_bottom(create("current_song", CurrentSongUI, True, termbox,
+            status))
+        self.add_bottom(create("progress_bar", ProgressBarUI, True, termbox,
+            status))
+        self.add_bottom(create("message", MessageUI, False, termbox, msg))
+
+        create("playlist", PlaylistUI, False, termbox, status)
 
 
 class Main(object):
@@ -24,11 +41,9 @@ class Main(object):
         self.termbox = None
         self.cfg = cfg
         self.mpd = MPDWrapper(cfg["host"], cfg["port"])
-        self.changes = Changes()
 
     def event_loop(self):
-        last = time_in_millis()
-        for i in xrange(10):
+        while True:
             self.ui.draw()
 
             active = []
@@ -45,15 +60,14 @@ class Main(object):
                 else:
                     raise err
 
+            curr = time_in_millis()
+
             # Update elapsed time if playing (rough estimate)
             if self.status.is_playing():
-                curr = time_in_millis()
-                diff = (curr - last)
-                if diff >= 1000:
-                    self.status.progress.elapsed_time += (diff / 1000)
-                last = curr
+                self.status.progress.update(curr)
             else:
-                last = time_in_millis()
+                self.status.progress.set_last(curr)
+            self.msg.update(curr)
 
             if self.mpd in active:
                 self.mpd.noidle()
@@ -69,13 +83,6 @@ class Main(object):
             self.termbox.close()
         self.mpd.disconnect()
 
-    def handle_key_event(self, ch, key):
-        if ch:
-            if ch == "q":
-                sys.exit(0)
-            else:
-                self.progress_bar.toggle_visibility()
-
     def handle_tb_event(self, event):
         if event:
             (type, ch, key, mod, w, h) = event
@@ -83,29 +90,25 @@ class Main(object):
             if type == termbox.EVENT_RESIZE:
                 self.ui.set_size(w, h)
             elif type == termbox.EVENT_KEY:
-                self.handle_key_event(ch, key)
+                self.state.key_event(ch, key, mod)
 
     def setup(self):
         self.termbox = termbox.Termbox()
         self.mpd.connect()
         self.status = Status(self.mpd)
         self.status.init()
+        self.msg = Message()
 
-        self.current_song = CurrentSongUI(self.termbox, self.status)
-        self.progress_bar = ProgressBarUI(self.termbox, self.status)
-        self.playlist = PlaylistUI(self.termbox, self.status)
+        self.ui = UI(self.termbox, self.status, self.msg)
 
-        self.ui = VerticalLayout(self.termbox)
-        self.ui.add_bottom(self.current_song)
-        self.ui.add_bottom(self.progress_bar)
-        self.ui.set_main(self.playlist)
+        args = [self, self.mpd, self.status, self.ui, self.msg]
+        self.state = PlaylistState(*args)
 
 
 def redirect_std(path):
     log_file = open(path, "w")
     sys.stdout = log_file
     sys.stderr = log_file
-
     return log_file
 
 

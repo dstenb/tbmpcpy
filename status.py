@@ -1,3 +1,4 @@
+from common import *
 from list import *
 from wrapper import *
 import traceback
@@ -19,6 +20,7 @@ class Progress(object):
     def __init__(self):
         self.elapsed_time = 0
         self.total_time = 0
+        self.last = time_in_millis()
 
     def elapsed(self):
         if self.total_time > 0:
@@ -31,6 +33,12 @@ class Progress(object):
     def set_time(self, t):
         self.total_time = t
 
+    def set_last(self, ts):
+        self.last = ts
+
+    def update(self, ts):
+        self.elapsed_time += (ts - self.last) / 1000.0
+        self.last = ts
 
 class StatusListener():
 

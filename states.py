@@ -65,11 +65,18 @@ class State(object):
 
                     # States
                     "1": lambda: self.listener.change_state("playlist"),
-                    "2": lambda: self.listener.change_state("browser")
+                    "2": lambda: self.listener.change_state("browser"),
+                    ":": lambda: self.listener.change_state("command")
             }
             by_key = {}
 
         self.bindings = Keybindings(by_ch, by_key)
+
+    def activate(self):
+        pass
+
+    def deactivate(self):
+        pass
 
     def key_event(self, ch, key, mod):
         func = self.bindings.get(ch, key)
@@ -89,8 +96,6 @@ class PlaylistState(State):
         super(PlaylistState, self).__init__(_listener, _mpcw,
                 _status, _ui, _msg, True)
 
-        self.ui.set_main(self.ui.playlist)
-
         self.bindings.add_ch_list({
             "j": lambda: self.ui.playlist.select(1, True),
             "k": lambda: self.ui.playlist.select(-1, True),
@@ -107,6 +112,36 @@ class PlaylistState(State):
             termbox.KEY_ARROW_DOWN: lambda: self.ui.playlist.select(1, True)
         })
 
+    def activate(self):
+        self.ui.set_main(self.ui.playlist)
+
+    def deactivate(self):
+        pass
+
+
+class CommandState(State):
+
+    def __init__(self, _listener, _mpcw, _status, _ui, _msg):
+        super(CommandState, self).__init__(_listener, _mpcw,
+                _status, _ui, _msg, False)
+
+        self.bindings.add_key_list({
+            termbox.KEY_ESC: lambda: self.deactivate("playlist")
+        })
+
+    def activate(self):
+        self.ui.command.show()
+
+    def deactivate(self, new_state):
+        self.ui.command.hide()
+        self.listener.change_state(new_state)
+
+    def key_event(self, ch, key, mod):
+        func = self.bindings.get(ch, key)
+        if func:
+            func()
+        elif ch:
+            ch
 
 #class BrowserUI(ListUI, StatusListener):
 #

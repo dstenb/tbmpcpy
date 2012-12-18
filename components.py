@@ -44,7 +44,6 @@ class ProgressBarUI(Component, StatusListener):
         return f
 
 
-
 class MessageUI(Component, MessageListener):
 
     def __init__(self, tb, msg):
@@ -62,7 +61,7 @@ class MessageUI(Component, MessageListener):
 
     def text(self):
         prefix = {"info": "Info", "warning": "Warning", "error": "Error"}
-        return prefix[self.msg.level] + ": " + self.msg.text
+        return " %s: %s" % (prefix[self.msg.level], self.msg.text)
 
     def draw(self):
         if self.msg.has_message():
@@ -207,3 +206,18 @@ class CurrentSongUI(Component, StatusListener):
 
     def state_changed(self, s):
         self.show if s in ["play", "pause"] else self.hide()
+
+
+class CommandUI(Component):
+
+    def __init__(self, tb, command):
+        super(CommandUI, self).__init__(tb)
+        self.set_pref_dim(-1, 1)
+        self.set_dim(0, 0, tb.width(), 1)
+        self.command = command
+
+    def draw(self):
+        c = (termbox.WHITE, termbox.BLACK)
+        f = Format()
+        f.add(":abc", *c)
+        self.change_cells_format(0, 0, f)

@@ -31,6 +31,7 @@ class UI(VerticalLayout):
         self.add_bottom(create("progress_bar", ProgressBarUI, True, termbox,
             status))
         self.add_bottom(create("message", MessageUI, False, termbox, msg))
+        self.add_bottom(create("command", CommandUI, False, termbox, None))
 
         create("playlist", PlaylistUI, False, termbox, status)
 
@@ -40,7 +41,13 @@ class Main(object):
     def __init__(self, cfg):
         self.termbox = None
         self.cfg = cfg
+        self.states = {}
         self.mpd = MPDWrapper(cfg["host"], cfg["port"])
+
+    def change_state(self, s):
+        if s in self.states:
+            self.state = self.states[s]
+            self.state.activate()
 
     def event_loop(self):
         while True:
@@ -102,7 +109,9 @@ class Main(object):
         self.ui = UI(self.termbox, self.status, self.msg)
 
         args = [self, self.mpd, self.status, self.ui, self.msg]
-        self.state = PlaylistState(*args)
+        self.states = { "playlist": PlaylistState(*args),
+                "command": CommandState(*args) }
+        self.change_state("playlist")
 
 
 def redirect_std(path):

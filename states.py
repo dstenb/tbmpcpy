@@ -56,12 +56,12 @@ class State(object):
                     "q": lambda: sys.exit(0),
 
                     # Player control
-                    "P": lambda: self.mpcw.player("play") if
+                    "P": lambda: self.mpd.player("play") if
                       self.status.state != "play" else
-                      self.mpcw.player("pause"),
-                    "s": lambda: self.mpcw.player("stop"),
-                    "n": lambda: self.mpcw.player("next"),
-                    "p": lambda: self.mpcw.player("previous"),
+                      self.mpd.player("pause"),
+                    "s": lambda: self.mpd.player("stop"),
+                    "n": lambda: self.mpd.player("next"),
+                    "p": lambda: self.mpd.player("previous"),
 
                     # States
                     "1": lambda: self.listener.change_state("playlist"),
@@ -92,8 +92,8 @@ class StateListener:
 
 class PlaylistState(State):
 
-    def __init__(self, _listener, _mpcw, _status, _ui, _msg):
-        super(PlaylistState, self).__init__(_listener, _mpcw,
+    def __init__(self, _listener, _mpd, _status, _ui, _msg):
+        super(PlaylistState, self).__init__(_listener, _mpd,
                 _status, _ui, _msg, True)
 
         self.bindings.add_ch_list({
@@ -121,8 +121,8 @@ class PlaylistState(State):
 
 class CommandState(State):
 
-    def __init__(self, _listener, _mpcw, _status, _ui, _msg):
-        super(CommandState, self).__init__(_listener, _mpcw,
+    def __init__(self, _listener, _mpd, _status, _ui, _msg):
+        super(CommandState, self).__init__(_listener, _mpd,
                 _status, _ui, _msg, False)
 
         self.bindings.add_key_list({
@@ -153,8 +153,8 @@ class CommandState(State):
 #
 #class BrowserState(State):
 #
-#    def __init__(self, _listener, _mpcw, _status, _termbox):
-#        super(BrowserState, self).__init__(_listener, _mpcw,
+#    def __init__(self, _listener, _mpd, _status, _termbox):
+#        super(BrowserState, self).__init__(_listener, _mpd,
 #                _status, _termbox, True)
 #
 #        self.browser_ui = BrowserUI(self.termbox, self.status)

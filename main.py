@@ -1,6 +1,7 @@
 #!/usr/bin/python
 # -*- encoding: utf-8 -*-
 
+import getopt
 import select
 import sys
 import termbox
@@ -53,8 +54,8 @@ class Main(object):
             self.state.activate()
 
     def auth(self):
-        if self.mpd.connected and self.cfg["pass"]:
-            if not self.mpd.auth(self.cfg["pass"]):
+        if self.mpd.connected and self.cfg["password"]:
+            if not self.mpd.auth(self.cfg["password"]):
                 self.msg.error("Couldn't auth!", 3)
                 return False
         return True
@@ -150,13 +151,45 @@ def redirect_std(path):
     return log_file
 
 
-def main():
-    log_file = redirect_std("log")
+def usage(cmd):
+    print "Usage: %s [OPTIONS]..." % cmd
+    print
+    print("Mandatory arguments to long options are %s" %
+            "mandatory for short options too.")
+    print
+    print "-h, --help       print this message."
+    print "-p, --password   MPD password"
+
+
+def main(argv=None):
 
     cfg = {"host": "localhost",
             "port": 6600,
-            "pass": "password"
+            "password": None
     }
+
+    if argv is None:
+        argv = sys.argv
+
+    cmd = argv[0]
+
+    try:
+        opts, argv = getopt.getopt(argv[1:], "p:h", ["help", "password="])
+    except getopt.GetoptError as e:
+        print(e)
+        usage(cmd)
+        sys.exit()
+
+    printer = None
+
+    for o, a in opts:
+        if o in ("-h", "--help"):
+            usage(cmd)
+            sys.exit()
+        elif o in ("-p", "--password"):
+            cfg["password"] = a
+
+    log_file = redirect_std("log")
 
     m = Main(cfg)
     try:

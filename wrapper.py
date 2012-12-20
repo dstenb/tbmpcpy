@@ -28,6 +28,14 @@ class MPDWrapper():
         self.connected = False
         self.in_idle = False
 
+    def auth(self, password):
+        if self.connected:
+            try:
+                self.mpd.password(password)
+            except CommandError:
+                return False
+        return True
+
     def connect(self):
         try:
             self.mpd.connect(self.host, self.port)
@@ -63,7 +71,9 @@ class MPDWrapper():
             self.changes.add(changes)
 
     def playlist(self):
-        return self.mpd.playlistinfo()
+        if self.connected:
+            return self.mpd.playlistinfo()
+        return None
 
     def player(self, name, *args):
         if self.connected:
@@ -71,4 +81,6 @@ class MPDWrapper():
             getattr(self.mpd, name)(*args)
 
     def status(self):
-        return self.mpd.status()
+        if self.connected:
+            return self.mpd.status()
+        return None

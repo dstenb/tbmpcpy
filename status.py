@@ -61,8 +61,9 @@ def _get_bool(d, v, de=0):
 
 class Status:
 
-    def __init__(self, mpdw):
-        self.mpdw = mpdw
+    def __init__(self, mpd, msg):
+        self.mpd = mpd
+        self.msg = msg
         self.browser = Browser()
         self.playlist = Playlist()
         self.progress = Progress()
@@ -112,9 +113,12 @@ class Status:
         self.listeners.append(o)
 
     def init(self):
-        results = self.mpdw.status()
+        results = self.mpd.status()
         print(results)
-        self._set_playlist(self.mpdw.playlist(), int(results["playlist"]))
+        if not results:
+            self.msg.error("Couldn't retrieve MPD status", 1)
+            return
+        self._set_playlist(self.mpd.playlist(), int(results["playlist"]))
         self._set_state(results.get("state", "unknown"))
         self._update_options(results)
         self._set_current(int(results.get("song", -1)))
@@ -130,7 +134,11 @@ class Status:
 
     def _update_playlist(self, results):
         print(":: updating playlist")
-        self._set_playlist(self.mpdw.playlist(), int(results["playlist"]))
+        playlist = self.mpd.playlist()
+        if playlist:
+            self._set_playlist(playlist, int(results["playlist"]))
+        else:
+            self.msg.error("Couldn't retrieve playlist", 1)
 
     def _update_player(self, results):
         print(":: updating player")
@@ -148,7 +156,11 @@ class Status:
         if len(changes) == 0:
             return
 
-        results = self.mpdw.status()
+        results = self.mpd.status()
+
+        if not results:
+            self.msg.error("Couldn't retrieve MPD status", 1)
+            return
         update_current = False
         print(results)
 

@@ -15,6 +15,9 @@ from ui import *
 from wrapper import *
 
 
+MPD_RECONNECT = 10
+
+
 class UI(VerticalLayout):
 
     def __init__(self, termbox, status, msg):
@@ -49,7 +52,25 @@ class Main(object):
             self.state = self.states[s]
             self.state.activate()
 
+    def auth(self):
+        if self.mpd.connected and self.cfg["pass"]:
+            if not self.mpd.auth(self.cfg["pass"]):
+                self.msg.error("Couldn't auth!", 3)
+                return False
+        return True
+
+    def connect(self):
+        if self.mpd.connect():
+            self.msg.info("Connected to %s:%s!" %
+                    (self.mpd.host, self.mpd.port), 1)
+        else:
+            self.msg.error("Couldn't connect to %s:%s" %
+                    (self.mpd.host, self.mpd.port), 3)
+
     def event_loop(self):
+        curr = time_in_millis()
+        retry_conn = False
+        retry_timestamp = curr
         while True:
             self.ui.draw()
 
@@ -58,6 +79,13 @@ class Main(object):
             if self.mpd.connected:
                 fds.append(self.mpd)
                 self.mpd.idle()
+            elif not retry_conn:
+                retry_conn = True
+                retry_timestamp = curr
+            elif (curr - retry_timestamp) >= MPD_RECONNECT * 1000:
+                retry_conn = False
+                self.connect()
+                self.auth()
 
             try:
                 active, _, _ = select.select(fds, [], [], 1)
@@ -101,12 +129,13 @@ class Main(object):
 
     def setup(self):
         self.termbox = termbox.Termbox()
-        self.mpd.connect()
-        self.status = Status(self.mpd)
-        self.status.init()
         self.msg = Message()
-
+        self.status = Status(self.mpd, self.msg)
         self.ui = UI(self.termbox, self.status, self.msg)
+        self.connect()
+        self.auth()
+
+        self.status.init()
 
         args = [self, self.mpd, self.status, self.ui, self.msg]
         self.states = { "playlist": PlaylistState(*args),
@@ -126,7 +155,7 @@ def main():
 
     cfg = {"host": "localhost",
             "port": 6600,
-            "pass": None
+            "pass": "password"
     }
 
     m = Main(cfg)

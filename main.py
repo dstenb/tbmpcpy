@@ -144,11 +144,19 @@ class Main(object):
         self.change_state("playlist")
 
 
+_stdout = sys.stdout
+_stderr = sys.stderr
+
 def redirect_std(path):
     log_file = open(path, "w")
     sys.stdout = log_file
     sys.stderr = log_file
     return log_file
+
+def stop_redirect(log_file):
+    log_file.close()
+    sys.stdout = _stdout
+    sys.stderr = _stderr
 
 
 def usage(cmd):
@@ -195,11 +203,15 @@ def main(argv=None):
     try:
         m.setup()
         m.event_loop()
+    except SystemExit:
+        pass
     except:
+        m.exit()
+        stop_redirect(log_file)
         traceback.print_exc()
-
-    m.exit()
-    log_file.close()
+    finally:
+        m.exit()
+        stop_redirect(log_file)
 
 if __name__ == "__main__":
     main()

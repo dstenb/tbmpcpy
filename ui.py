@@ -145,12 +145,12 @@ class SolidComponent(Component):
             self.change_cells_format(0, y, f)
 
 
-class VerticalLayout(ComponentListener):
+class VerticalLayout(Component, ComponentListener):
 
     def __init__(self, tb):
-        self.tb = tb
-        self.w = tb.width()
-        self.h = tb.height()
+        super(VerticalLayout, self).__init__(tb)
+        self.set_pref_dim(-1, -1)
+        self.set_dim(0, 0, tb.width(), tb.height())
         self.top = []
         self.main = None
         self.bottom = []

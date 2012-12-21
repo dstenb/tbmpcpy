@@ -1,6 +1,5 @@
 import sys
 import termbox
-import traceback
 
 
 def _cl(s, fg, bg):
@@ -251,63 +250,3 @@ class VerticalLayout(Component, ComponentListener):
             print("unknown " + str(o))
             sys.exit(0)
         self.fix()
-
-
-#def redirect_std(path):
-#    log_file = open(path, "w")
-#    sys.stdout = log_file
-#    sys.stderr = log_file
-#
-#    return log_file
-
-#cl = ComponentListener()
-#
-#c = Component(None)
-#print(c.visible)
-#c.add_listener(cl)
-#c.hide()
-#c.set_dim(0, 0, 2, 2)
-#c.show()
-#c.set_pref_dim(2, 1)
-
-#log_file = redirect_std("log")
-#
-#try:
-#    tb = termbox.Termbox()
-#    vl = VerticalLayout(tb)
-#    red = SolidComponent(tb, termbox.RED)
-#    blue = SolidComponent(tb, termbox.BLUE)
-#    green1 = SolidComponent(tb, termbox.GREEN)
-#    green2 = SolidComponent(tb, termbox.GREEN)
-#
-#    vl.add_top(blue)
-#    vl.add_top(green1)
-#    vl.add_bottom(green2)
-#    vl.set_main(red)
-#
-#    for i in xrange(10):
-#        vl.draw()
-#        ev = tb.poll_event()
-#
-#        if ev:
-#            (type, ch, key, mod, w, h) = ev
-#
-#            if type == termbox.EVENT_RESIZE:
-#                vl.set_size(w, h)
-#            elif type == termbox.EVENT_KEY:
-#                if ch:
-#                    if ch == "q":
-#                        blue.toggle_visibility()
-#                        vl.remove_top(blue)
-#                    elif ch == "w":
-#                        green1.toggle_visibility()
-#                    elif ch == "r":
-#                        green2.toggle_visibility()
-#                    elif ch == "e":
-#                        red.toggle_visibility()
-#except:
-#    traceback.print_exc()
-#finally:
-#    tb.close()
-#
-#log_file.close()

@@ -1,5 +1,6 @@
 # -*- encoding: utf-8 -*-
 
+from command import *
 from components import *
 from status import *
 from ui import *
@@ -126,10 +127,15 @@ class CommandState(State):
                 _status, _ui, _msg, False)
 
         self.bindings.add_key_list({
+            termbox.KEY_BACKSPACE2: lambda: self.commandline.remove_last(),
+            termbox.KEY_TAB: lambda: self.commandline.autocomplete(),
             termbox.KEY_ESC: lambda: self.deactivate("playlist")
         })
 
     def activate(self):
+        # TODO: Fix this
+        self.commandline = CommandLine({"a": 1, "aa": 2, "aba" : 3, "b": 2})
+        self.ui.command.cl = self.commandline
         self.ui.command.show()
 
     def deactivate(self, new_state):
@@ -141,7 +147,7 @@ class CommandState(State):
         if func:
             func()
         elif ch:
-            ch
+            self.commandline.add(ch)
 
 #class BrowserUI(ListUI, StatusListener):
 #

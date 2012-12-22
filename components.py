@@ -219,5 +219,5 @@ class CommandUI(Component):
     def draw(self):
         c = (termbox.WHITE, termbox.BLACK)
         f = Format()
-        f.add(":abc", *c)
+        f.add(":%s" % self.cl.buf, *c)
         self.change_cells_format(0, 0, f)

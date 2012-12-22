@@ -205,7 +205,7 @@ class CurrentSongUI(Component, StatusListener):
         return f
 
     def state_changed(self, s):
-        self.show if s in ["play", "pause"] else self.hide()
+        self.show() if s in ["play", "pause"] else self.hide()
 
 
 class CommandUI(Component):

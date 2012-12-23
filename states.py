@@ -101,9 +101,7 @@ class PlaylistState(State):
             "j": lambda: self.ui.playlist.select(1, True),
             "k": lambda: self.ui.playlist.select(-1, True),
             "g": lambda: self.ui.playlist.select(0),
-            "G": lambda: self.ui.playlist.select(sys.maxsize),
-            "w": lambda: self.msg.warning("Can't flumpf the flumpf", 1),
-            "e": lambda: self.msg.error("Unable to connect to localhost:6600", 5),
+            "G": lambda: self.ui.playlist.select(sys.maxsize)
         })
         self.bindings.add_key_list({
             termbox.KEY_ENTER: lambda:
@@ -127,20 +125,29 @@ class CommandState(State):
                 _status, _ui, _msg, False)
 
         self.bindings.add_key_list({
+            termbox.KEY_ENTER: lambda: self.execute(),
             termbox.KEY_BACKSPACE2: lambda: self.commandline.remove_last(),
             termbox.KEY_TAB: lambda: self.commandline.autocomplete(),
             termbox.KEY_ESC: lambda: self.deactivate("playlist")
         })
 
     def activate(self):
-        # TODO: Fix this
-        self.commandline = CommandLine({"a": 1, "aa": 2, "aba" : 3, "b": 2})
+        # TODO Fix this
+        self.commandline = CommandLine({"a": 1, "aa": 2, "aba": 3, "b": 2})
         self.ui.command.cl = self.commandline
         self.ui.command.show()
 
     def deactivate(self, new_state):
         self.ui.command.hide()
         self.listener.change_state(new_state)
+
+    def execute(self):
+        try:
+            self.commandline.execute()
+        except UnknownCommandException, err:
+            self.msg.error("Unknown command: %s" % str(err), 1)
+
+        self.deactivate("playlist")  # TODO
 
     def key_event(self, ch, key, mod):
         func = self.bindings.get(ch, key)

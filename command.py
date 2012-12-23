@@ -4,6 +4,12 @@ class WrongArgException(Exception):
         pass
 
 
+class UnknownCommandException(Exception):
+
+    def __init__(self, cmd):
+        super(UnknownCommandException, self).__init__(cmd)
+
+
 class Command(object):
 
     def __init__(self, res, name="a", desc="tjo"):
@@ -77,6 +83,19 @@ class CommandLine(object):
                 self._autocomplete_commands(cmd)
         else:
             self._autocomplete_arg(args)
+
+    def execute(self):
+        cmd, args = self.split()
+
+        if cmd:
+            if cmd.isdigit():
+                #TODO: handle setting
+                pass
+            elif cmd in self.commands:
+                #self.commands[cmd].execute(*args)
+                pass
+            else:
+                raise UnknownCommandException(cmd)
 
 cl = CommandLine({"aba": 1, "b": 2, "abba": 3})
 

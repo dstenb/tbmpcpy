@@ -155,33 +155,3 @@ class CommandState(State):
             func()
         elif ch:
             self.commandline.add(ch)
-
-#class BrowserUI(ListUI, StatusListener):
-#
-#    def __init__(self, tb, status):
-#        super(BrowserUI, self).__init__(tb, status.browser)
-#        self.status = status
-#        self.status.add_listener(self)
-#
-#
-#class BrowserState(State):
-#
-#    def __init__(self, _listener, _mpd, _status, _termbox):
-#        super(BrowserState, self).__init__(_listener, _mpd,
-#                _status, _termbox, True)
-#
-#        self.browser_ui = BrowserUI(self.termbox, self.status)
-#        self.ui.set_top(PlayerInfoUI(self.termbox, self.status, "Browser"))
-#        self.ui.set_bottom(CurrentSongUI(self.termbox, self.status))
-#        self.ui.set_main(self.browser_ui)
-#
-#        self.bindings.add_ch_list({
-#            "j": lambda: self.browser_ui.select(1, True),
-#            "k": lambda: self.browser_ui.select(-1, True),
-#            "g": lambda: self.browser_ui.select(0),
-#            "G": lambda: self.browser_ui.select(sys.maxsize),
-#        })
-#        self.bindings.add_key_list({
-#            termbox.KEY_ARROW_UP: lambda: self.browser_ui.select(-1, True),
-#            termbox.KEY_ARROW_DOWN: lambda: self.browser_ui.select(1, True)
-#        })

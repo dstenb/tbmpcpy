@@ -1,11 +1,12 @@
 import time
 
+
 def time_in_millis():
     return int(round(time.time() * 1000))
 
 
 class Listenable(object):
-   
+
     def __init__(self):
         self.listeners = []
 

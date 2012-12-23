@@ -211,7 +211,7 @@ class VerticalLayout(Component, ComponentListener):
         if self.main:
             self.main.set_dim(0, self.top_strut, self.w, self.h -
                     self.top_strut - self.bottom_strut, True, False)
-            self.main.show() # Force main to be shown
+            self.main.show()  # Force main to be shown
 
     def set_main(self, c):
         if self.main:

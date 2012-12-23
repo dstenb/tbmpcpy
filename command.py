@@ -1,3 +1,6 @@
+from common import *
+
+
 class WrongArgException(Exception):
 
     def __init__(self, arg, description):
@@ -10,12 +13,18 @@ class UnknownCommandException(Exception):
         super(UnknownCommandException, self).__init__(cmd)
 
 
+class CommandExcutionError(Exception):
+
+    def __init__(self, err):
+        super(CommandExecutionError, self).__init__(err)
+
+
 class Command(object):
 
-    def __init__(self, res, name="a", desc="tjo"):
+    def __init__(self, res, name="unknown", description="no description"):
         self.res = res
         self.name = name
-        self.description = desc
+        self.description = description
 
     def autocomplete(self, n, text):
         return [text]
@@ -24,9 +33,34 @@ class Command(object):
         pass
 
 
-class CommandLine(object):
+class CommandLineListener(object):
+
+    def matched_changed(self, cl):
+        pass
+
+
+class Match(object):
+
+    def __init__(self, list):
+        self.list = list
+        self.pos = 0
+
+    def current(self):
+        if len(self.list) > 0:
+            return self.list[self.pos]
+        return None
+
+    def select_next(self):
+        self.pos += 1
+        if self.pos >= len(self.list):
+            self.pos = 0
+        return self.current()
+
+
+class CommandLine(Listenable):
 
     def __init__(self, commands={}):
+        super(CommandLine, self).__init__()
         self.buf = ""
         self.commands = commands
         self.matched = None
@@ -64,7 +98,7 @@ class CommandLine(object):
             self.matched_pos = 1
             self.buf = self.matched[self.matched_pos]
 
-    def _autocomplete_arg(self):
+    def _autocomplete_arg(self, cmd, args):
         pass
 
     def _autocomplete_next(self):
@@ -82,7 +116,7 @@ class CommandLine(object):
             else:
                 self._autocomplete_commands(cmd)
         else:
-            self._autocomplete_arg(args)
+            self._autocomplete_arg(cmd, args)
 
     def execute(self):
         cmd, args = self.split()
@@ -92,20 +126,7 @@ class CommandLine(object):
                 #TODO: handle setting
                 pass
             elif cmd in self.commands:
-                #self.commands[cmd].execute(*args)
+                self.commands[cmd].execute(*args)
                 pass
             else:
                 raise UnknownCommandException(cmd)
-
-cl = CommandLine({"aba": 1, "b": 2, "abba": 3})
-
-cl.add("a")
-print(cl.buf)
-cl.autocomplete()
-print(cl.buf)
-cl.autocomplete()
-print(cl.buf)
-cl.autocomplete()
-print(cl.buf)
-cl.autocomplete()
-print(cl.buf)

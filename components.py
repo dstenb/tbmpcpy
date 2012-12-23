@@ -208,10 +208,10 @@ class CurrentSongUI(Component, StatusListener):
         self.show() if s in ["play", "pause"] else self.hide()
 
 
-class CommandUI(Component):
+class CommandLineUI(Component):
 
     def __init__(self, tb, command):
-        super(CommandUI, self).__init__(tb)
+        super(CommandLineUI, self).__init__(tb)
         self.set_pref_dim(-1, 1)
         self.set_dim(0, 0, tb.width(), 1)
         self.command = command

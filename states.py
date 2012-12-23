@@ -1,6 +1,7 @@
 # -*- encoding: utf-8 -*-
 
 from command import *
+from commands import *
 from components import *
 from status import *
 from ui import *
@@ -93,9 +94,8 @@ class StateListener:
 
 class PlaylistState(State):
 
-    def __init__(self, _listener, _mpd, _status, _ui, _msg):
-        super(PlaylistState, self).__init__(_listener, _mpd,
-                _status, _ui, _msg, True)
+    def __init__(self, *args):
+        super(PlaylistState, self).__init__(*args, default_keys=True)
 
         self.bindings.add_ch_list({
             "j": lambda: self.ui.playlist.select(1, True),
@@ -120,20 +120,34 @@ class PlaylistState(State):
 
 class CommandState(State):
 
-    def __init__(self, _listener, _mpd, _status, _ui, _msg):
-        super(CommandState, self).__init__(_listener, _mpd,
-                _status, _ui, _msg, False)
+    def __init__(self, *args):
+        super(CommandState, self).__init__(*args, default_keys=False)
 
         self.bindings.add_key_list({
             termbox.KEY_ENTER: lambda: self.execute(),
             termbox.KEY_BACKSPACE2: lambda: self.commandline.remove_last(),
+            termbox.KEY_SPACE: lambda: self.commandline.add(" "),
             termbox.KEY_TAB: lambda: self.commandline.autocomplete(),
             termbox.KEY_ESC: lambda: self.deactivate("playlist")
         })
 
+        self._setup_commands()
+
+    def _setup_commands(self):
+        res = { "mpd": self.mpd,
+                "status": self.status,
+                "ui": self.ui
+        }
+
+        self.commands = { "next": NextCommand(res),
+                "prev": PrevCommand(res),
+                "previous": PrevCommand(res),
+                "stop": StopCommand(res)
+        }
+
     def activate(self):
         # TODO Fix this
-        self.commandline = CommandLine({"a": 1, "aa": 2, "aba": 3, "b": 2})
+        self.commandline = CommandLine(self.commands)
         self.ui.command.cl = self.commandline
         self.ui.command.show()
 

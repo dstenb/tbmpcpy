@@ -1,0 +1,5 @@
+<components.MessageUI object at 0x8cb6b8c>: visibility_changed: True
+{u'songid': u'22', u'playlistlength': u'61', u'playlist': u'63', u'repeat': u'0', u'consume': u'0', u'mixrampdb': u'0.000000', u'random': u'0', u'state': u'pause', u'xfade': u'0', u'volume': u'100', u'single': u'0', u'mixrampdelay': u'nan', u'nextsong': u'23', u'time': u'52:364', u'song': u'22', u'elapsed': u'51.595', u'bitrate': u'224', u'nextsongid': u'23', u'audio': u'44100:24:2'}
+:: updating changes
+<components.PlaylistUI object at 0x8cb6c6c>: visibility_changed: True
+<components.MessageUI object at 0x8cb6b8c>: visibility_changed: False

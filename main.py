@@ -35,7 +35,7 @@ class UI(VerticalLayout):
         self.add_bottom(create("progress_bar", ProgressBarUI, True, termbox,
             status))
         self.add_bottom(create("message", MessageUI, False, termbox, msg))
-        self.add_bottom(create("command", CommandUI, False, termbox, None))
+        self.add_bottom(create("command", CommandLineUI, False, termbox, None))
 
         create("playlist", PlaylistUI, False, termbox, status)
 

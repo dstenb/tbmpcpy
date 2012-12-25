@@ -151,10 +151,10 @@ class CommandState(State):
         }
 
     def activate(self):
-        # TODO Fix this
         self.ui.command.show()
 
     def deactivate(self, new_state):
+        self.commandline.clear()
         self.ui.command.hide()
         self.listener.change_state(new_state)
 
@@ -162,9 +162,9 @@ class CommandState(State):
         try:
             self.commandline.execute()
         except UnknownCommandException, err:
-            self.msg.error("Unknown command: %s" % str(err), 1)
+            self.msg.error("Unknown command: " + unicode(err), 1)
 
-        self.deactivate("playlist")  # TODO
+        self.deactivate("playlist")  # FIXME: revert to previous state
 
     def key_event(self, ch, key, unused_mod):
         func = self.bindings.get(ch, key)

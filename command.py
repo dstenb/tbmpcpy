@@ -74,6 +74,10 @@ class CommandLine(Listenable):
         self.buf = self.buf[:-1]
         self._autocomplete_clear()
 
+    def clear(self):
+        self.buf = ""
+        self._autocomplete_clear()
+
     def split(self):
         s = self.buf.split(" \t")
         return s[0] if len(s) > 0 else None, s[1:]

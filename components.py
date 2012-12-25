@@ -70,7 +70,7 @@ class MessageUI(Component, MessageListener):
             f.add(self.text(), *self.get_colors())
             self.change_cells_format(0, 0, f)
 
-    def message_changed(self, msg):
+    def message_changed(self, unused_msg):
         self.show() if self.msg.has_message() else self.hide()
 
 
@@ -133,7 +133,7 @@ class PlaylistUI(ListUI, StatusListener):
         self.status = status
         self.status.add_listener(self)
 
-    def _format(self, song, y, pos):
+    def _format(self, song, unused_y, pos):
         left, right = Format(), Format()
 
         numw = 0
@@ -191,7 +191,6 @@ class CurrentSongUI(Component, StatusListener):
         self.state_changed(status.state)
 
     def draw(self):
-        c = (termbox.WHITE, termbox.BLACK)
         song_line = self._song_format(self.status.current)
         self.change_cells_format(0, 0, song_line)
 
@@ -262,18 +261,18 @@ class CommandLineUI(Component, CommandLineListener):
         self.command = command
         self.matched = None
         self.matchedw = None
+        self.cl = None
 
     def draw(self):
         if self.matchedw:
             #FUGLY
             for i, f in enumerate(self.matchedw.format()):
                 self.change_cells_format(0, i, f)
-        c = (termbox.WHITE, termbox.BLACK)
         f = Format()
-        f.add(":%s" % self.cl.buf, *c)
+        f.add(":%s" % self.cl.buf, termbox.WHITE, termbox.BLACK)
         self.change_cells_format(0, self.h - 1, f)
 
-    def matched_changed(self, cl):
+    def matched_changed(self, unused_cl):
         if self.cl.matched:
             self.matchedw = self.MatchedWin(self.tb, self.cl.matched)
             self.set_pref_dim(-1, self.matchedw.h + 1)
@@ -282,5 +281,11 @@ class CommandLineUI(Component, CommandLineListener):
             self.set_pref_dim(-1, 1)
         pass
 
-    def matched_selected_changed(self, cl):
+    def matched_selected_changed(self, unused_cl):
         self.matchedw.select(self.cl.matched_pos)
+
+    def set_command_line(self, cl):
+        if self.cl:
+            self.cl.remove_listener(self)
+        self.cl = cl
+        self.cl.add_listener(self)

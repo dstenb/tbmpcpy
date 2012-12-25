@@ -58,7 +58,7 @@ class Drawable(object):
         pass
 
     def get_dim(self):
-        return [x, y, w, h]
+        return [self.x, self.y, self.w, self.h]
 
 
 class ComponentListener(object):

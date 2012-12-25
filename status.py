@@ -43,16 +43,16 @@ class Progress(object):
 class StatusListener():
 
     def current_changed(self):
-        self
+        pass
 
     def option_changed(self, o, b):
-        self
+        pass
 
     def playlist_changed(self):
-        self
+        pass
 
     def state_changed(self, state):
-        self
+        pass
 
 
 def _get_bool(d, v, de=0):
@@ -99,7 +99,7 @@ class Status:
         songs = []
         for d in _songs:
             songs.append(Song(d))
-        self.playlist.set(songs, version)
+        self.playlist.set_list(songs, version)
         for o in self.listeners:
             o.playlist_changed()
 

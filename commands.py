@@ -1,6 +1,7 @@
 import sys
 
 from command import *
+from wrapper import *
 
 
 class NextCommand(Command):
@@ -9,7 +10,7 @@ class NextCommand(Command):
         super(NextCommand, self).__init__(res, "next",
                 "Play next song in playlist")
 
-    def execute(self, *args):
+    def execute(self, *unused_args):
         try:
             self.res["mpd"].player("next")
         except CommandError:
@@ -22,7 +23,7 @@ class PrevCommand(Command):
         super(PrevCommand, self).__init__(res, "prev",
                 "Play previous song in playlist")
 
-    def execute(self, *args):
+    def execute(self, *unused_args):
         try:
             self.res["mpd"].player("previous")
         except CommandError:
@@ -35,7 +36,7 @@ class StopCommand(Command):
         super(StopCommand, self).__init__(res, "stop",
                 "Stop playing")
 
-    def execute(self, *args):
+    def execute(self, *unused_args):
         try:
             self.res["mpd"].player("stop")
         except CommandError:
@@ -47,7 +48,7 @@ class ToggleCommand(Command):
         super(ToggleCommand, self).__init__(res, "toggle",
                 "Play/pause")
 
-    def execute(self, *args):
+    def execute(self, *unused_args):
         if self.res["status"].state != "play":
             self.res["mpd"].player("play")
         else:

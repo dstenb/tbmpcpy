@@ -13,7 +13,7 @@ class UnknownCommandException(Exception):
         super(UnknownCommandException, self).__init__(cmd)
 
 
-class CommandExcutionError(Exception):
+class CommandExecutionError(Exception):
 
     def __init__(self, err):
         super(CommandExecutionError, self).__init__(err)
@@ -26,7 +26,7 @@ class Command(object):
         self.name = name
         self.description = description
 
-    def autocomplete(self, n, text):
+    def autocomplete(self, unused_n, text):
         return [text]
 
     def execute(self, *args):

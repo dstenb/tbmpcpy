@@ -17,7 +17,7 @@ class List(object):
     def add_listener(self, o):
         self.listeners.append(o)
 
-    def set(self, items):
+    def set_list(self, items):
         self.items = items
         self._notify()
 
@@ -50,7 +50,7 @@ class Playlist(List):
         super(Playlist, self).__init__()
         self.version = 0
 
-    def set(self, items, version):
+    def set_list(self, items, version):
         self.items = items
         self.version = version
         self._notify()

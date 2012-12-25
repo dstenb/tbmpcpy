@@ -80,7 +80,7 @@ class State(object):
     def deactivate(self):
         pass
 
-    def key_event(self, ch, key, mod):
+    def key_event(self, ch, key, unused_mod):
         func = self.bindings.get(ch, key)
         if func:
             func()
@@ -89,7 +89,7 @@ class State(object):
 class StateListener:
 
     def change_state(self, str):
-        self
+        pass
 
 
 class PlaylistState(State):
@@ -133,6 +133,9 @@ class CommandState(State):
 
         self._setup_commands()
 
+        self.commandline = CommandLine(self.commands)
+        self.ui.command.set_command_line(self.commandline)
+
     def _setup_commands(self):
         res = { "mpd": self.mpd,
                 "status": self.status,
@@ -149,9 +152,6 @@ class CommandState(State):
 
     def activate(self):
         # TODO Fix this
-        self.commandline = CommandLine(self.commands)
-        self.ui.command.cl = self.commandline
-        self.commandline.add_listener(self.ui.command)
         self.ui.command.show()
 
     def deactivate(self, new_state):
@@ -166,7 +166,7 @@ class CommandState(State):
 
         self.deactivate("playlist")  # TODO
 
-    def key_event(self, ch, key, mod):
+    def key_event(self, ch, key, unused_mod):
         func = self.bindings.get(ch, key)
         if func:
             func()

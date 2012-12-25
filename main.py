@@ -121,11 +121,11 @@ class Main(object):
 
     def handle_tb_event(self, event):
         if event:
-            (type, ch, key, mod, w, h) = event
+            (etype, ch, key, mod, w, h) = event
 
-            if type == termbox.EVENT_RESIZE:
+            if etype == termbox.EVENT_RESIZE:
                 self.ui.set_size(w, h)
-            elif type == termbox.EVENT_KEY:
+            elif etype == termbox.EVENT_KEY:
                 self.state.key_event(ch, key, mod)
 
     def setup(self):
@@ -187,8 +187,6 @@ def main(argv=None):
         print(e)
         usage(cmd)
         sys.exit()
-
-    printer = None
 
     for o, a in opts:
         if o in ("-h", "--help"):

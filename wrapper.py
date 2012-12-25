@@ -80,6 +80,11 @@ class MPDWrapper():
             self.noidle()
             getattr(self.mpd, name)(*args)
 
+    def option(self, name, *args):
+        if self.connected:
+            self.noidle()
+            getattr(self.mpd, name)(*args)
+
     def status(self):
         if self.connected:
             return self.mpd.status()

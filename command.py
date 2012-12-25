@@ -6,7 +6,8 @@ from common import *
 class WrongArgException(Exception):
 
     def __init__(self, arg, description):
-        pass
+        self.arg = arg
+        self.description = description
 
 
 class UnknownCommandException(Exception):
@@ -37,7 +38,10 @@ class Command(object):
 
 class CommandLineListener(object):
 
-    def matched_changed(self, cl):
+    def matched_changed(self, unused_cl):
+        pass
+
+    def matched_selected_changed(self, unused_cl):
         pass
 
 
@@ -155,10 +159,8 @@ class CommandLine(Listenable):
 
         if cmd:
             if cmd.isdigit():
-                #TODO: handle setting
-                pass
+                pass  # TODO: handle setting
             elif cmd in self.commands:
                 self.commands[cmd].execute(*args)
-                pass
             else:
                 raise UnknownCommandException(cmd)

@@ -144,7 +144,9 @@ class CommandState(State):
                 "ui": self.ui
         }
 
-        self.commands = { "next": NextCommand(res),
+        self.commands = {
+                "consume": ConsumeCommand(res),
+                "next": NextCommand(res),
                 "previous": PrevCommand(res),
                 "playpause": ToggleCommand(res),
                 "q": QuitCommand(res),
@@ -176,7 +178,10 @@ class CommandState(State):
         try:
             self.commandline.execute()
         except UnknownCommandException, err:
-            self.msg.error("Unknown command: " + unicode(err), 1)
+            self.msg.error("Unknown command: " + unicode(err), 2)
+        except WrongArgException, err:
+            self.msg.error("Invalid argument '%s' (%s)" %
+                    (err.arg, err.description), 3)
 
         self.deactivate("playlist")  # FIXME: revert to previous state
 

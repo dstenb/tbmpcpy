@@ -4,6 +4,7 @@ from command import *
 from wrapper import *
 
 
+#### Playback control commands ####
 class NextCommand(Command):
 
     def __init__(self, res):
@@ -42,6 +43,7 @@ class StopCommand(Command):
         except CommandError:
             raise CommandExecutionError("Couldn't execute 'stop' command")
 
+
 class ToggleCommand(Command):
 
     def __init__(self, res):
@@ -55,6 +57,32 @@ class ToggleCommand(Command):
             self.res["mpd"].player("pause")
 
 
+#### Playback options commands ####
+class ConsumeCommand(Command):
+
+    def __init__(self, res):
+        super(ConsumeCommand, self).__init__(res, "consume",
+                "Set consume")
+
+    def autocomplete(self, n, arg):
+        if arg == "" or arg == "o":
+            return [arg, "on", "off"]
+        return [arg]
+
+
+    def execute(self, *args):
+        if len(args) == 0:
+            raise WrongArgException("", "expected on/off")
+        elif args[0] not in ("on", "off"):
+            raise WrongArgException(args[0], "expected on/off")
+        try:
+            self.res["mpd"].option("consume", 1 if
+                    args[0] == "on" else 0)
+        except CommandError:
+            raise CommandExecutionError("Couldn't execute 'consume' command")
+
+
+#### Application-specific commands ####
 class QuitCommand(Command):
 
     def __init__(self, res):

@@ -139,19 +139,21 @@ class Main(object):
         self.status.init()
 
         args = [self, self.mpd, self.status, self.ui, self.msg]
-        self.states = { "playlist": PlaylistState(*args),
-                "command": CommandState(*args) }
+        self.states = {"playlist": PlaylistState(*args),
+                "command": CommandState(*args)}
         self.change_state("playlist")
 
 
 _stdout = sys.stdout
 _stderr = sys.stderr
 
+
 def redirect_std(path):
     log_file = open(path, "w")
     sys.stdout = log_file
     sys.stderr = log_file
     return log_file
+
 
 def stop_redirect(log_file):
     log_file.close()

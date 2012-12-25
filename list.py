@@ -25,7 +25,7 @@ class List(object):
 class Path(object):
 
     def __init__(self):
-        self.list = [ ]
+        self.list = []
 
     def push(self, s):
         self.list.append(s)

@@ -3,6 +3,7 @@ from list import *
 from wrapper import *
 import traceback
 
+
 class Song():
 
     def __init__(self, d):
@@ -39,6 +40,7 @@ class Progress(object):
     def update(self, ts):
         self.elapsed_time += (ts - self.last) / 1000.0
         self.last = ts
+
 
 class StatusListener():
 

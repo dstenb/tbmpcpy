@@ -139,7 +139,7 @@ class CommandState(State):
         self.ui.command.set_command_line(self.commandline)
 
     def _setup_commands(self):
-        res = { "mpd": self.mpd,
+        res = {"mpd": self.mpd,
                 "status": self.status,
                 "ui": self.ui
         }

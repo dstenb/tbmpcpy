@@ -124,6 +124,8 @@ class CommandState(State):
         super(CommandState, self).__init__(*args, default_keys=False)
 
         self.bindings.add_key_list({
+            termbox.KEY_ARROW_DOWN: lambda: self.arrow_down(),
+            termbox.KEY_ARROW_UP: lambda: self.arrow_up(),
             termbox.KEY_ENTER: lambda: self.execute(),
             termbox.KEY_BACKSPACE2: lambda: self.commandline.remove_last(),
             termbox.KEY_SPACE: lambda: self.commandline.add(" "),
@@ -157,6 +159,18 @@ class CommandState(State):
         self.commandline.clear()
         self.ui.command.hide()
         self.listener.change_state(new_state)
+
+    def arrow_down(self):
+        if self.commandline.autocompleted():
+            self.commandline.autocomplete(True)
+        else:
+            pass  # TODO: handle commandline history
+
+    def arrow_up(self):
+        if self.commandline.autocompleted():
+            self.commandline.autocomplete(False)
+        else:
+            pass  # TODO: handle commandline history
 
     def execute(self):
         try:

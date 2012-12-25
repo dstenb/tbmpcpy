@@ -223,12 +223,17 @@ class CommandLineUI(Component, CommandLineListener):
 
         def _fix_bounds(self):
             if len(self.matched) > 0:
-                self.sel = min(max(0, self.sel), len(self.matched) - 1)
-                if (self.sel - self.start) >= self.h:
-                    self.start = self.sel - self.h + 1
-                if self.sel < self.start:
-                    self.start = self.sel
-                self.start = min(max(0, self.start), len(self.matched) - 1)
+                if self.sel < 0:
+                    self.sel = -1
+                    self.start = 0
+                else:
+                    self.sel = min(self.sel, len(self.matched) - 1)
+                    if (self.sel - self.start) >= self.h:
+                        self.start = self.sel - self.h + 1
+                    if self.sel < self.start:
+                        self.start = self.sel
+                    self.start = min(max(0, self.start),
+                            len(self.matched) - 1)
 
         def format(self):
             length = len(self.matched)
@@ -238,20 +243,16 @@ class CommandLineUI(Component, CommandLineListener):
                 f = Format()
                 if y < length:
                     f.add("%3i %s (%s)" % ((pos + 1),
-                        self.matched[pos][0],
-                        str(self.matched[pos][1].description
-                            if self.matched[pos][1] else "None")),  #TODO
+                        self.matched[pos].name,
+                        str(self.matched[pos].command.description)),
                         termbox.WHITE, termbox.BLACK)
                     if pos == self.sel:
                         f.set_color(termbox.BLACK, termbox.WHITE)
                         f.set_bold()
                     yield f
 
-        def select(self, index, rel=False):
-            if rel:
-                self.sel += index
-            else:
-                self.sel = index
+        def select(self, index):
+            self.sel = index
             self._fix_bounds()
 
     def __init__(self, tb, command):
@@ -265,7 +266,6 @@ class CommandLineUI(Component, CommandLineListener):
 
     def draw(self):
         if self.matchedw:
-            #FUGLY
             for i, f in enumerate(self.matchedw.format()):
                 self.change_cells_format(0, i, f)
         f = Format()
@@ -282,7 +282,7 @@ class CommandLineUI(Component, CommandLineListener):
         pass
 
     def matched_selected_changed(self, unused_cl):
-        self.matchedw.select(self.cl.matched_pos)
+        self.matchedw.select(self.cl.matched.pos)
 
     def set_command_line(self, cl):
         if self.cl:

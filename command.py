@@ -1,3 +1,5 @@
+from collections import namedtuple
+
 from common import *
 
 
@@ -39,21 +41,39 @@ class CommandLineListener(object):
         pass
 
 
+MatchTuple = namedtuple("MatchTuple", "name command")
+
+
 class Match(object):
 
-    def __init__(self, list):
-        self.list = list
+    def __init__(self, matches, prefix):
+        self.matches = matches
+        self.matches.sort(key=lambda v: v[0])
+        self.prefixt = MatchTuple(prefix or "", None)
         self.pos = 0
 
+    def __getitem__(self, index):
+        return self.matches[index]
+
+    def __len__(self):
+        return len(self.matches)
+
     def current(self):
-        if len(self.list) > 0:
-            return self.list[self.pos]
-        return None
+        if self.pos >= 0:
+            return self.matches[self.pos]
+        return self.prefixt
+
+    def select_prev(self):
+        if self.pos < 0:
+            self.pos = len(self.matches) - 1
+        else:
+            self.pos -= 1
+        return self.current()
 
     def select_next(self):
         self.pos += 1
-        if self.pos >= len(self.list):
-            self.pos = 0
+        if self.pos >= len(self.matches):
+            self.pos = -1
         return self.current()
 
 
@@ -64,7 +84,6 @@ class CommandLine(Listenable):
         self.buf = ""
         self.commands = commands
         self.matched = None
-        self.matched_pos = 0
 
     def add(self, ch):
         self.buf += ch
@@ -79,35 +98,24 @@ class CommandLine(Listenable):
         self._autocomplete_clear()
 
     def split(self):
-        s = self.buf.split(" \t")
+        s = self.buf.split(" ")
         return s[0] if len(s) > 0 else None, s[1:]
 
     def _autocomplete_clear(self):
         self.matched = None
-        self.matched_pos = 0
         self.notify("matched_changed", self)
 
     def _autocomplete_commands(self, start):
-        self.matched = []
-        if start:
-            if not start in self.commands:
-                self.matched.append((start, None))
-            for k, v in self.commands.iteritems():
-                if k.startswith(start):
-                    self.matched.append((k, v))
-        else:
-            self.matched = self.commands.items()
-            self.matched.insert(0, ("", None))
+        matches = []
+        for k, v in self.commands.iteritems():
+            if not start or k.startswith(start):
+                matches.append(MatchTuple(k, v))
 
-        self.matched.sort(key=lambda v: v[0])
-
-        if len(self.matched) > 1:
-            self.matched_pos = 1
-            self.buf = self.matched[self.matched_pos][0]
+        if len(matches) > 0:
+            self.matched = Match(matches, start)
+            self.buf = self.matched.current().name
         else:  # No matches
             self.matched = None
-            self.matched_pos = 0
-        print(self.matched)
         self.notify("matched_changed", self)
         if self.matched:
             self.notify("matched_selected_changed", self)
@@ -115,27 +123,32 @@ class CommandLine(Listenable):
     def _autocomplete_arg(self, cmd, args):
         pass
 
-    def _autocomplete_next(self):
-        self.matched_pos += 1
-        if self.matched_pos >= len(self.matched):
-            self.matched_pos = 0
-
-        if self.matched[self.matched_pos]:
-            self.buf = self.matched[self.matched_pos][0]
-        else:
-            self.buf = ""
+    def _autocomplete_prev(self):
+        self.matched.select_prev()
+        self.buf = self.matched.current().name
         self.notify("matched_selected_changed", self)
 
-    def autocomplete(self):
+    def _autocomplete_next(self):
+        self.matched.select_next()
+        self.buf = self.matched.current().name
+        self.notify("matched_selected_changed", self)
+
+    def autocomplete(self, n=True):
         cmd, args = self.split()
 
         if len(args) == 0 and not self.buf.endswith(" "):
             if self.matched:
-                self._autocomplete_next()
+                if n:
+                    self._autocomplete_next()
+                else:
+                    self._autocomplete_prev()
             else:
                 self._autocomplete_commands(cmd)
         else:
             self._autocomplete_arg(cmd, args)
+
+    def autocompleted(self):
+        return self.matched != None
 
     def execute(self):
         cmd, args = self.split()

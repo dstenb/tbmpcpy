@@ -1,6 +1,13 @@
 from collections import namedtuple
+import re
 
 from common import *
+
+
+class MissingArgException(Exception):
+
+    def __init__(self, description):
+        self.description = description
 
 
 class WrongArgException(Exception):
@@ -30,7 +37,7 @@ class Command(object):
         self.description = description
 
     def autocomplete(self, unused_n, text):
-        return [text]
+        return []
 
     def execute(self, *args):
         pass
@@ -45,7 +52,7 @@ class CommandLineListener(object):
         pass
 
 
-MatchTuple = namedtuple("MatchTuple", "name command")
+MatchTuple = namedtuple("MatchTuple", "name description")
 
 
 class Match(object):
@@ -113,7 +120,7 @@ class CommandLine(Listenable):
         matches = []
         for k, v in self.commands.iteritems():
             if not start or k.startswith(start):
-                matches.append(MatchTuple(k, v))
+                matches.append(MatchTuple(k, v.description))
 
         if len(matches) > 0:
             self.matched = Match(matches, start)
@@ -125,7 +132,39 @@ class CommandLine(Listenable):
             self.notify("matched_selected_changed", self)
 
     def _autocomplete_arg(self, cmd, args):
-        pass
+        if cmd in self.commands:
+            start = args[-1]
+            print(start)
+            matches = self.commands[cmd].autocomplete(len(args) - 1, start)
+
+            if len(matches) > 0:
+                self.matched = Match(matches, start)
+                self._autocomplete_update_arg()
+            else:  # No matches
+                self.matched = None
+            self.notify("matched_changed", self)
+            if self.matched:
+                self.notify("matched_selected_changed", self)
+
+    def _autocomplete_arg_prev(self):
+        self.matched.select_prev()
+        self._autocomplete_update_arg()
+        self.notify("matched_selected_changed", self)
+
+    def _autocomplete_arg_next(self):
+        self.matched.select_next()
+        self._autocomplete_update_arg()
+        self.notify("matched_selected_changed", self)
+
+    def _autocomplete_update_arg(self):
+        cmd, args = self.split()
+
+        if len(args) == 0:
+            self.buf += self.matched.current().name
+        else:
+            self.buf = re.sub(r"(.*)" + args[-1],
+                    r"\1" + self.matched.current().name, self.buf)
+        print(self.buf)
 
     def _autocomplete_prev(self):
         self.matched.select_prev()
@@ -149,7 +188,13 @@ class CommandLine(Listenable):
             else:
                 self._autocomplete_commands(cmd)
         else:
-            self._autocomplete_arg(cmd, args)
+            if self.matched:
+                if n:
+                    self._autocomplete_arg_next()
+                else:
+                    self._autocomplete_arg_prev()
+            else:
+                self._autocomplete_arg(cmd, args)
 
     def autocompleted(self):
         return self.matched != None

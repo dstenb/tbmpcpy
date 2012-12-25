@@ -65,19 +65,22 @@ class ConsumeCommand(Command):
                 "Set consume")
 
     def autocomplete(self, n, arg):
-        if arg == "" or arg == "o":
-            return [arg, "on", "off"]
-        return [arg]
-
+        matches = []
+        if n == 0:
+            if "true".startswith(arg):
+                matches.append(MatchTuple("true", "Turn on consume"))
+            if "false".startswith(arg):
+                matches.append(MatchTuple("false", "Turn off consume"))
+        return matches
 
     def execute(self, *args):
         if len(args) == 0:
-            raise WrongArgException("", "expected on/off")
-        elif args[0] not in ("on", "off"):
-            raise WrongArgException(args[0], "expected on/off")
+            raise MissingArgException("requires one argument")
+        elif args[0] not in ("true", "false"):
+            raise WrongArgException(args[0], "expected true/false")
         try:
             self.res["mpd"].option("consume", 1 if
-                    args[0] == "on" else 0)
+                    args[0] == "true" else 0)
         except CommandError:
             raise CommandExecutionError("Couldn't execute 'consume' command")
 

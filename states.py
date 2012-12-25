@@ -179,9 +179,11 @@ class CommandState(State):
             self.commandline.execute()
         except UnknownCommandException, err:
             self.msg.error("Unknown command: " + unicode(err), 2)
+        except MissingArgException, err:
+            self.msg.error("Missing argument (%s): " % err.description, 2)
         except WrongArgException, err:
             self.msg.error("Invalid argument '%s' (%s)" %
-                    (err.arg, err.description), 3)
+                    (err.arg, err.description), 2)
 
         self.deactivate("playlist")  # FIXME: revert to previous state
 

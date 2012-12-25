@@ -242,9 +242,11 @@ class CommandLineUI(Component, CommandLineListener):
                 pos = y + self.start
                 f = Format()
                 if y < length:
-                    f.add("%3i %s (%s)" % ((pos + 1),
+                    def format_desc(d):
+                        return "(" + d + ")" if d else ""
+                    f.add("%3i %s %s" % ((pos + 1),
                         self.matched[pos].name,
-                        str(self.matched[pos].command.description)),
+                        format_desc(self.matched[pos].description)),
                         termbox.WHITE, termbox.BLACK)
                     if pos == self.sel:
                         f.set_color(termbox.BLACK, termbox.WHITE)

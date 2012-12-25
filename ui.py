@@ -42,26 +42,17 @@ class Drawable(object):
         self.tb = tb
         self.x, self.y, self.w, self.h = x, y, w, h
 
-    def change_cell(self, x, y, c, fg, bg):
-        if self.x + x < self.tb.width() and self.y + y < self.tb.height():
-            self.tb.change_cell(self.x + x, self.y + y, c, fg, bg)
-
-    def change_cells(self, ix, y, us, fg, bg, w=-1, pad=u" "):
-        if w >= 0 and w < len(us):
-            us = us[0:w - len(us)]
-        for x, c in enumerate(us, ix):
-            self.change_cell(x, y, ord(c), fg, bg)
-        for x in xrange(ix + len(us), ix + max(w, len(us))):
-            self.change_cell(x, y, ord(pad), fg, bg)
-
     def change_cells_format(self, ix, y, format, w=-1, pad=u" "):
         fg, bg = termbox.WHITE, termbox.BLACK
+        ix += self.x
 
         for x, c in enumerate(format.s):
             fg, bg = format.colors[x]
-            self.change_cell(x + ix, y, ord(c), fg, bg)
+            if self.x + x >= 0 and self.y + y >= 0:
+                self.tb.change_cell(ix + x, self.y + y, ord(c), fg, bg)
         for x in xrange(ix + len(format.s), ix + max(w, len(format.s))):
-            self.change_cell(x, y, ord(pad), fg, bg)
+            if self.x + x >= 0 and self.y + y >= 0:
+                self.tb.change_cell(self.x + x, self.y + y, ord(pad), fg, bg)
 
     def draw(self):
         pass

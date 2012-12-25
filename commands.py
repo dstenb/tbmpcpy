@@ -1,3 +1,5 @@
+import sys
+
 from command import *
 
 
@@ -38,3 +40,25 @@ class StopCommand(Command):
             self.res["mpd"].player("stop")
         except CommandError:
             raise CommandExecutionError("Couldn't execute 'stop' command")
+
+class ToggleCommand(Command):
+
+    def __init__(self, res):
+        super(ToggleCommand, self).__init__(res, "toggle",
+                "Play/pause")
+
+    def execute(self, *args):
+        if self.res["status"].state != "play":
+            self.res["mpd"].player("play")
+        else:
+            self.res["mpd"].player("pause")
+
+
+class QuitCommand(Command):
+
+    def __init__(self, res):
+        super(QuitCommand, self).__init__(res, "quit",
+                "Close the program")
+
+    def execute(self, *args):
+        sys.exit(args[0] if len(args) > 0 else 0)

@@ -3,6 +3,7 @@
 
 import math
 
+from command import *
 from common import *
 from status import *
 from ui import *
@@ -208,16 +209,78 @@ class CurrentSongUI(Component, StatusListener):
         self.show() if s in ["play", "pause"] else self.hide()
 
 
-class CommandLineUI(Component):
+class CommandLineUI(Component, CommandLineListener):
+
+    # TODO: sub of component
+    class MatchedWin(object):
+
+        def __init__(self, tb, matched, maxh=5):
+            self.tb = tb
+            self.matched = matched
+            self.start = 0
+            self.sel = 0
+            self.h = min(maxh, len(matched))
+            self.w = tb.width()
+
+        def _fix_bounds(self):
+            if len(self.matched) > 0:
+                self.sel = min(max(0, self.sel), len(self.matched) - 1)
+                if (self.sel - self.start) >= self.h:
+                    self.start = self.sel - self.h + 1
+                if self.sel < self.start:
+                    self.start = self.sel
+                self.start = min(max(0, self.start), len(self.matched) - 1)
+
+        def format(self):
+            length = len(self.matched)
+            empty = Format("".ljust(self.w))
+            for y in range(self.h):
+                pos = y + self.start
+                f = Format()
+                if y < length:
+                    f.add("%3i %s (%s)" % ((pos + 1),
+                        self.matched[pos][0],
+                        str(self.matched[pos][1].description
+                            if self.matched[pos][1] else "None")),  #TODO
+                        termbox.WHITE, termbox.BLACK)
+                    if pos == self.sel:
+                        f.set_color(termbox.BLACK, termbox.WHITE)
+                        f.set_bold()
+                    yield f
+
+        def select(self, index, rel=False):
+            if rel:
+                self.sel += index
+            else:
+                self.sel = index
+            self._fix_bounds()
 
     def __init__(self, tb, command):
         super(CommandLineUI, self).__init__(tb)
         self.set_pref_dim(-1, 1)
         self.set_dim(0, 0, tb.width(), 1)
         self.command = command
+        self.matched = None
+        self.matchedw = None
 
     def draw(self):
+        if self.matchedw:
+            #FUGLY
+            for i, f in enumerate(self.matchedw.format()):
+                self.change_cells_format(0, i, f)
         c = (termbox.WHITE, termbox.BLACK)
         f = Format()
         f.add(":%s" % self.cl.buf, *c)
-        self.change_cells_format(0, 0, f)
+        self.change_cells_format(0, self.h - 1, f)
+
+    def matched_changed(self, cl):
+        if self.cl.matched:
+            self.matchedw = self.MatchedWin(self.tb, self.cl.matched)
+            self.set_pref_dim(-1, self.matchedw.h + 1)
+        else:
+            self.matchedw = None
+            self.set_pref_dim(-1, 1)
+        pass
+
+    def matched_selected_changed(self, cl):
+        self.matchedw.select(self.cl.matched_pos)

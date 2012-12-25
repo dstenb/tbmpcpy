@@ -81,22 +81,32 @@ class CommandLine(Listenable):
     def _autocomplete_clear(self):
         self.matched = None
         self.matched_pos = 0
+        self.notify("matched_changed", self)
 
     def _autocomplete_commands(self, start):
+        self.matched = []
         if start:
-            self.matched = filter(lambda k: k.startswith(start),
-                    self.commands.keys())
+            if not start in self.commands:
+                self.matched.append((start, None))
+            for k, v in self.commands.iteritems():
+                if k.startswith(start):
+                    self.matched.append((k, v))
         else:
-            self.matched = self.commands.keys()
+            self.matched = self.commands.items()
+            self.matched.insert(0, ("", None))
 
-        if start and not start in self.matched:
-            self.matched.insert(0, start)
-
-        self.matched.sort()
+        self.matched.sort(key=lambda v: v[0])
 
         if len(self.matched) > 1:
             self.matched_pos = 1
-            self.buf = self.matched[self.matched_pos]
+            self.buf = self.matched[self.matched_pos][0]
+        else:  # No matches
+            self.matched = None
+            self.matched_pos = 0
+        print(self.matched)
+        self.notify("matched_changed", self)
+        if self.matched:
+            self.notify("matched_selected_changed", self)
 
     def _autocomplete_arg(self, cmd, args):
         pass
@@ -105,7 +115,12 @@ class CommandLine(Listenable):
         self.matched_pos += 1
         if self.matched_pos >= len(self.matched):
             self.matched_pos = 0
-        self.buf = self.matched[self.matched_pos]
+
+        if self.matched[self.matched_pos]:
+            self.buf = self.matched[self.matched_pos][0]
+        else:
+            self.buf = ""
+        self.notify("matched_selected_changed", self)
 
     def autocomplete(self):
         cmd, args = self.split()

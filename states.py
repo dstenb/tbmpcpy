@@ -140,8 +140,10 @@ class CommandState(State):
         }
 
         self.commands = { "next": NextCommand(res),
-                "prev": PrevCommand(res),
                 "previous": PrevCommand(res),
+                "playpause": ToggleCommand(res),
+                "q": QuitCommand(res),
+                "quit": QuitCommand(res),
                 "stop": StopCommand(res)
         }
 
@@ -149,6 +151,7 @@ class CommandState(State):
         # TODO Fix this
         self.commandline = CommandLine(self.commands)
         self.ui.command.cl = self.commandline
+        self.commandline.add_listener(self.ui.command)
         self.ui.command.show()
 
     def deactivate(self, new_state):

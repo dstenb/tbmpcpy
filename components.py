@@ -244,12 +244,12 @@ class CommandLineUI(Component, CommandLineListener):
                 if y < length:
                     def format_desc(d):
                         return "(" + d + ")" if d else ""
-                    f.add("%3i %s %s" % ((pos + 1),
-                        self.matched[pos].name,
-                        format_desc(self.matched[pos].description)),
-                        termbox.WHITE, termbox.BLACK)
+                    f.add("%3i " % (pos + 1), termbox.BLUE, termbox.BLACK)
+                    f.add("%s " % self.matched[pos].name,
+                            termbox.RED, termbox.BLACK)
+                    f.add(format_desc(self.matched[pos].description),
+                        termbox.YELLOW, termbox.BLACK)
                     if pos == self.sel:
-                        f.set_color(termbox.BLACK, termbox.WHITE)
                         f.set_bold()
                     yield f
 
@@ -259,12 +259,12 @@ class CommandLineUI(Component, CommandLineListener):
 
     def __init__(self, tb, command):
         super(CommandLineUI, self).__init__(tb)
-        self.set_pref_dim(-1, 1)
-        self.set_dim(0, 0, tb.width(), 1)
         self.command = command
         self.matched = None
         self.matchedw = None
         self.cl = None
+        self.set_pref_dim(-1, 1)
+        self.set_dim(0, 0, tb.width(), 1)
 
     def draw(self):
         if self.matchedw:
@@ -291,3 +291,8 @@ class CommandLineUI(Component, CommandLineListener):
             self.cl.remove_listener(self)
         self.cl = cl
         self.cl.add_listener(self)
+
+    def set_dim(self, x, y, w, h, set_stored=True, notify=True):
+        if self.matchedw:
+            self.matchedw.w = w
+        super(CommandLineUI, self).set_dim(x, y, w, h, set_stored, notify)

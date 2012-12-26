@@ -139,13 +139,13 @@ class CommandState(State):
         self.ui.command.set_command_line(self.commandline)
 
     def _setup_commands(self):
-        res = {"mpd": self.mpd,
-                "status": self.status,
-                "ui": self.ui
-        }
+        res = ResourceTuple(self.mpd, self.status, self.ui)
 
         self.commands = {
-                "consume": ConsumeCommand(res),
+                "consume": boolean_option_command(res, "consume"),
+                "random": boolean_option_command(res, "random"),
+                "repeat": boolean_option_command(res, "repeat"),
+                "single": boolean_option_command(res, "single"),
                 "next": NextCommand(res),
                 "previous": PrevCommand(res),
                 "playpause": ToggleCommand(res),

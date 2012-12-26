@@ -3,6 +3,14 @@ import re
 
 from common import *
 
+# Vi-like command line, with command and argument autocomplete.
+# The code is generic except for ResourceTuple
+
+ResourceTuple = namedtuple("ResourceTuple", "mpd status ui")
+
+
+MatchTuple = namedtuple("MatchTuple", "name description")
+
 
 class MissingArgException(Exception):
 
@@ -50,9 +58,6 @@ class CommandLineListener(object):
 
     def matched_selected_changed(self, unused_cl):
         pass
-
-
-MatchTuple = namedtuple("MatchTuple", "name description")
 
 
 class Match(object):

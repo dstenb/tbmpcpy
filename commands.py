@@ -13,7 +13,7 @@ class NextCommand(Command):
 
     def execute(self, *unused_args):
         try:
-            self.res["mpd"].player("next")
+            self.res.mpd.player("next")
         except CommandError:
             raise CommandExecutionError("Couldn't execute 'next' command")
 
@@ -26,7 +26,7 @@ class PrevCommand(Command):
 
     def execute(self, *unused_args):
         try:
-            self.res["mpd"].player("previous")
+            self.res.mpd.player("previous")
         except CommandError:
             raise CommandExecutionError("Couldn't execute 'prev' command")
 
@@ -39,7 +39,7 @@ class StopCommand(Command):
 
     def execute(self, *unused_args):
         try:
-            self.res["mpd"].player("stop")
+            self.res.mpd.player("stop")
         except CommandError:
             raise CommandExecutionError("Couldn't execute 'stop' command")
 
@@ -51,26 +51,26 @@ class ToggleCommand(Command):
                 "Play/pause")
 
     def execute(self, *unused_args):
-        if self.res["status"].state != "play":
-            self.res["mpd"].player("play")
+        if self.res.status.state != "play":
+            self.res.mpd.player("play")
         else:
-            self.res["mpd"].player("pause")
+            self.res.mpd.player("pause")
 
 
 #### Playback options commands ####
-class ConsumeCommand(Command):
+class BooleanOptionCommand(Command):
 
-    def __init__(self, res):
-        super(ConsumeCommand, self).__init__(res, "consume",
-                "Set consume")
+    def __init__(self, res, cmd, name, desc):
+        super(BooleanOptionCommand, self).__init__(res, name, desc)
+        self.cmd = cmd
 
     def autocomplete(self, n, arg):
         matches = []
         if n == 0:
             if "true".startswith(arg):
-                matches.append(MatchTuple("true", "Turn on consume"))
+                matches.append(MatchTuple("true", None))
             if "false".startswith(arg):
-                matches.append(MatchTuple("false", "Turn off consume"))
+                matches.append(MatchTuple("false", None))
         return matches
 
     def execute(self, *args):
@@ -79,10 +79,18 @@ class ConsumeCommand(Command):
         elif args[0] not in ("true", "false"):
             raise WrongArgException(args[0], "expected true/false")
         try:
-            self.res["mpd"].option("consume", 1 if
-                    args[0] == "true" else 0)
+            self.res.mpd.option(self.cmd, 1 if args[0] == "true" else 0)
         except CommandError:
-            raise CommandExecutionError("Couldn't execute 'consume' command")
+            raise CommandExecutionError("Couldn't execute '%s' command" %
+                    self.cmd)
+
+
+def boolean_option_command(res, name):
+    d = {"consume": ["consume", "consume", "Set consume mode"],
+            "single": ["single", "single", "Set single mode"],
+            "random": ["random", "random", "Set random mode"],
+            "repeat": ["repeat", "repeat", "Set random mode"]}
+    return BooleanOptionCommand(res, *d[name])
 
 
 #### Application-specific commands ####

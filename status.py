@@ -140,11 +140,7 @@ class Status:
 
     def _update_playlist(self, results):
         print(":: updating playlist")
-        playlist = self.mpd.playlist()
-        if playlist:
-            self._set_playlist(playlist, int(results["playlist"]))
-        else:
-            self.msg.error("Couldn't retrieve playlist", 1)
+        self._set_playlist(self.mpd.playlist(), int(results["playlist"]))
 
     def _update_player(self, results):
         print(":: updating player")

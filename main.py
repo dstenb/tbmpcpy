@@ -47,11 +47,19 @@ class Main(object):
         self.cfg = cfg
         self.states = {}
         self.mpd = MPDWrapper(cfg["host"], cfg["port"])
+        self.pstate = None
+        self.state = None
 
-    def change_state(self, s):
+    def change_state(self, s, args={}):
         if s in self.states:
+            self.pstate = self.state
             self.state = self.states[s]
-            self.state.activate()
+            self.state.activate(args)
+
+    def prev_state(self, args={}):
+        if self.pstate:
+            self.pstate, self.state = self.state, self.pstate
+            self.state.activate(args)
 
     def auth(self):
         if self.mpd.connected and self.cfg["password"]:

@@ -61,6 +61,10 @@ def _get_bool(d, v, de=0):
     return bool(int(d.get(v, de)))
 
 
+def _get_int(d, v, de=0):
+    return int(d.get(v, de))
+
+
 class Status:
 
     def __init__(self, mpd, msg):
@@ -73,7 +77,7 @@ class Status:
                 "random": False,
                 "repeat": False,
                 "single": False,
-                "xfade": False}
+                "xfade": 0}
         self.current = None
         self.state = ""
         self.listeners = []
@@ -132,7 +136,7 @@ class Status:
         self._set_option("random", _get_bool(results, "random"))
         self._set_option("repeat", _get_bool(results, "repeat"))
         self._set_option("single", _get_bool(results, "single"))
-        self._set_option("xfade", _get_bool(results, "xfade"))
+        self._set_option("xfade", _get_int(results, "xfade", -1))
 
     def _update_playlist(self, results):
         print(":: updating playlist")

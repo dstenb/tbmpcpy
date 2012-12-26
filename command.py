@@ -168,7 +168,7 @@ class CommandLine(Listenable):
             self.buf += self.matched.current().name
         else:
             self.buf = re.sub(r"(.*)" + args[-1],
-                    r"\1" + self.matched.current().name, self.buf)
+                    r"\g<1>" + self.matched.current().name, self.buf)
         print(self.buf)
 
     def _autocomplete_prev(self):

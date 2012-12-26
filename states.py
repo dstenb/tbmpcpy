@@ -74,7 +74,7 @@ class State(object):
 
         self.bindings = Keybindings(by_ch, by_key)
 
-    def activate(self):
+    def activate(self, unused_args={}):
         pass
 
     def deactivate(self):
@@ -88,7 +88,10 @@ class State(object):
 
 class StateListener:
 
-    def change_state(self, str):
+    def change_state(self, s, args={}):
+        pass
+
+    def prev_state(self, args={}):
         pass
 
 
@@ -101,7 +104,13 @@ class PlaylistState(State):
             "j": lambda: self.ui.playlist.select(1, True),
             "k": lambda: self.ui.playlist.select(-1, True),
             "g": lambda: self.ui.playlist.select(0),
-            "G": lambda: self.ui.playlist.select(sys.maxsize)
+            "G": lambda: self.ui.playlist.select(sys.maxsize),
+            "c": lambda: self.deactivate("command",
+                {"start_string": "consume ",
+                    "autocomplete": True }),
+            "x": lambda: self.deactivate("command",
+                {"start_string": "crossfade ",
+                    "autocomplete": True })
         })
         self.bindings.add_key_list({
             termbox.KEY_ENTER: lambda:
@@ -111,11 +120,11 @@ class PlaylistState(State):
             termbox.KEY_ARROW_DOWN: lambda: self.ui.playlist.select(1, True)
         })
 
-    def activate(self):
+    def activate(self, unused_args={}):
         self.ui.set_main(self.ui.playlist)
 
-    def deactivate(self):
-        pass
+    def deactivate(self, s, d):
+        self.listener.change_state(s, d)
 
 
 class CommandState(State):
@@ -130,7 +139,7 @@ class CommandState(State):
             termbox.KEY_BACKSPACE2: lambda: self.commandline.remove_last(),
             termbox.KEY_SPACE: lambda: self.commandline.add(" "),
             termbox.KEY_TAB: lambda: self.commandline.autocomplete(),
-            termbox.KEY_ESC: lambda: self.deactivate("playlist")
+            termbox.KEY_ESC: lambda: self.deactivate()
         })
 
         self._setup_commands()
@@ -146,6 +155,7 @@ class CommandState(State):
                 "random": boolean_option_command(res, "random"),
                 "repeat": boolean_option_command(res, "repeat"),
                 "single": boolean_option_command(res, "single"),
+                "crossfade": CrossfadeOptionCommand(res),
                 "next": NextCommand(res),
                 "previous": PrevCommand(res),
                 "playpause": ToggleCommand(res),
@@ -154,13 +164,19 @@ class CommandState(State):
                 "stop": StopCommand(res)
         }
 
-    def activate(self):
+    def activate(self, args={}):
         self.ui.command.show()
 
-    def deactivate(self, new_state):
+        if "start_string" in args:
+            self.commandline.add(args["start_string"])
+
+        if args.get("autocomplete", False):
+            self.commandline.autocomplete()
+
+    def deactivate(self):
         self.commandline.clear()
         self.ui.command.hide()
-        self.listener.change_state(new_state)
+        self.listener.prev_state()
 
     def arrow_down(self):
         if self.commandline.autocompleted():
@@ -185,7 +201,7 @@ class CommandState(State):
             self.msg.error("Invalid argument '%s' (%s)" %
                     (err.arg, err.description), 2)
 
-        self.deactivate("playlist")  # FIXME: revert to previous state
+        self.deactivate()
 
     def key_event(self, ch, key, unused_mod):
         func = self.bindings.get(ch, key)

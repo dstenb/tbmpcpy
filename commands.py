@@ -85,6 +85,42 @@ class BooleanOptionCommand(Command):
                     self.cmd)
 
 
+class IntegerOptionCommand(Command):
+
+    def __init__(self, res, cmd, name, desc):
+        super(IntegerOptionCommand, self).__init__(res, name, desc)
+        self.cmd = cmd
+
+    def execute(self, *args):
+        if len(args) == 0:
+            raise MissingArgException("requires one argument")
+        elif not args[0].isdigit():
+            raise WrongArgException(args[0], "expected an integer")
+        try:
+            self.res.mpd.option(self.cmd, int(args[0]))
+        except CommandError:
+            raise CommandExecutionError("Couldn't execute '%s' command" %
+                    self.cmd)
+
+
+class CrossfadeOptionCommand(IntegerOptionCommand):
+
+    def __init__(self, res):
+        super(CrossfadeOptionCommand, self).__init__(res, "crossfade",
+                "crossfade", "Set crossfade")
+
+    def autocomplete(self, n, arg):
+        matches = []
+        if n == 0:
+            current = self.res.status.options["xfade"]
+
+            if "0".startswith(arg):
+                matches.append(MatchTuple("0", "Disable crossfade"))
+            if str(current).startswith(arg):
+                matches.append(MatchTuple(str(current), "Current value"))
+        return matches
+
+
 def boolean_option_command(res, name):
     d = {"consume": ["consume", "consume", "Set consume mode"],
             "single": ["single", "single", "Set single mode"],

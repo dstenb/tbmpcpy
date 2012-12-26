@@ -53,6 +53,9 @@ class Command(object):
 
 class CommandLineListener(object):
 
+    def line_changed(self, unused_cl):
+        pass
+
     def matched_changed(self, unused_cl):
         pass
 
@@ -104,14 +107,17 @@ class CommandLine(Listenable):
     def add(self, ch):
         self.buf += ch
         self._autocomplete_clear()
+        self.notify("line_changed", self)
 
     def remove_last(self):
         self.buf = self.buf[:-1]
         self._autocomplete_clear()
+        self.notify("line_changed", self)
 
     def clear(self):
         self.buf = ""
         self._autocomplete_clear()
+        self.notify("line_changed", self)
 
     def split(self):
         s = self.buf.split(" ")
@@ -139,7 +145,6 @@ class CommandLine(Listenable):
     def _autocomplete_arg(self, cmd, args):
         if cmd in self.commands:
             start = args[-1]
-            print(start)
             matches = self.commands[cmd].autocomplete(len(args) - 1, start)
 
             if len(matches) > 0:
@@ -200,6 +205,7 @@ class CommandLine(Listenable):
                     self._autocomplete_arg_prev()
             else:
                 self._autocomplete_arg(cmd, args)
+        self.notify("line_changed", self)
 
     def autocompleted(self):
         return self.matched != None

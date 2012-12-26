@@ -166,6 +166,7 @@ class CommandState(State):
 
     def activate(self, args={}):
         self.ui.command.show()
+        self.ui.command.fix_cursor()
 
         if "start_string" in args:
             self.commandline.add(args["start_string"])
@@ -176,6 +177,7 @@ class CommandState(State):
     def deactivate(self):
         self.commandline.clear()
         self.ui.command.hide()
+        self.ui.command.fix_cursor()
         self.listener.prev_state()
 
     def arrow_down(self):

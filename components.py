@@ -263,16 +263,38 @@ class CommandLineUI(Component, CommandLineListener):
         self.matched = None
         self.matchedw = None
         self.cl = None
+        self.lines = [":"]
         self.set_pref_dim(-1, 1)
         self.set_dim(0, 0, tb.width(), 1)
 
     def draw(self):
         if self.matchedw:
+            clh = self.matchedw.h
             for i, f in enumerate(self.matchedw.format()):
                 self.change_cells_format(0, i, f)
-        f = Format()
-        f.add(":%s" % self.cl.buf, termbox.WHITE, termbox.BLACK)
-        self.change_cells_format(0, self.h - 1, f)
+        else:
+            clh = 0
+        for y, l in enumerate(self.lines, clh):
+            f = Format()
+            f.add(l, termbox.WHITE, termbox.BLACK)
+            self.change_cells_format(0, y, f)
+
+    def fix_cursor(self):
+        if self.visible:
+            self.tb.set_cursor(len(self.lines[-1]), self.y + self.h -1)
+        else:
+            self.tb.hide_cursor()
+
+    def fix_height(self):
+        h = self.matchedw.h if self.matchedw else 0
+        h += len(self.lines)
+        self.set_pref_dim(-1, h)
+
+    def line_changed(self, unused_cl):
+        line = ":" + self.cl.buf
+        self.lines = [line[i:i+self.w] for i in range(0, len(line), self.w)]
+        self.fix_height()
+        self.fix_cursor()
 
     def matched_changed(self, unused_cl):
         if self.cl.matched:
@@ -281,7 +303,6 @@ class CommandLineUI(Component, CommandLineListener):
         else:
             self.matchedw = None
             self.set_pref_dim(-1, 1)
-        pass
 
     def matched_selected_changed(self, unused_cl):
         self.matchedw.select(self.cl.matched.pos)

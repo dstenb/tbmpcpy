@@ -130,6 +130,22 @@ def boolean_option_command(res, name):
 
 
 #### Application-specific commands ####
+class MainSelectCommand(Command):
+
+    def __init__(self, res):
+        super(MainSelectCommand, self).__init__(res, "", "")
+
+    def execute(self, *args):
+        if len(args) == 0:
+            raise MissingArgException("requires one argument")
+        elif not args[0].isdigit():
+            raise WrongArgException(args[0], "expected an integer")
+        digit = int(args[0])
+
+        if self.res.ui.main and self.res.ui.main.is_list():
+            self.res.ui.main.select(digit - 1)
+
+
 class QuitCommand(Command):
 
     def __init__(self, res):

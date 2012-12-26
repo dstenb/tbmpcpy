@@ -144,9 +144,6 @@ class CommandState(State):
 
         self._setup_commands()
 
-        self.commandline = CommandLine(self.commands)
-        self.ui.command.set_command_line(self.commandline)
-
     def _setup_commands(self):
         res = ResourceTuple(self.mpd, self.status, self.ui)
 
@@ -163,6 +160,11 @@ class CommandState(State):
                 "quit": QuitCommand(res),
                 "stop": StopCommand(res)
         }
+
+        number_command = MainSelectCommand(res)
+
+        self.commandline = CommandLine(self.commands, number_command)
+        self.ui.command.set_command_line(self.commandline)
 
     def activate(self, args={}):
         self.ui.command.show()

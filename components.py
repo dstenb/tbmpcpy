@@ -14,6 +14,41 @@ color_elapsed = (termbox.WHITE, termbox.BLACK)
 color_remaining = (termbox.BLACK, termbox.BLACK)
 
 
+class MainComponent(Component):
+
+    def __init__(self, tb, islist=False):
+        super(MainComponent, self).__init__(tb)
+        self.islist = islist
+
+    def is_list(self):
+        return self.islist
+
+    def select(self, index, rel=False):
+        if self.is_list():
+            return self._select(index, rel)
+        return False  # TODO raise exception for debugging
+
+    def selected(self):
+        if self.is_list():
+            return self._selected()
+        return None  # TODO raise exception for debugging
+
+    def search_start(self, d):
+        if self.is_list():
+            return self._search_start(d)
+        return None  # TODO raise exception for debugging
+
+    def search_next(self):
+        if self.is_list():
+            return self._search_next()
+        return None  # TODO raise exception for debugging
+
+    def search_prev(self):
+        if self.is_list():
+            return self._search_prev()
+        return None  #TODO raise exception for debugging
+
+
 class ProgressBarUI(Component, StatusListener):
 
     def __init__(self, tb, status):
@@ -74,10 +109,10 @@ class MessageUI(Component, MessageListener):
         self.show() if self.msg.has_message() else self.hide()
 
 
-class ListUI(Component):
+class ListUI(MainComponent):
 
     def __init__(self, tb, list):
-        super(ListUI, self).__init__(tb)
+        super(ListUI, self).__init__(tb, True)
         self.list = list
         self.sel = 0
         self.start = 0

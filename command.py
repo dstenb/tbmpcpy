@@ -98,11 +98,12 @@ class Match(object):
 
 class CommandLine(Listenable):
 
-    def __init__(self, commands={}):
+    def __init__(self, commands={}, number_command=None):
         super(CommandLine, self).__init__()
         self.buf = ""
         self.commands = commands
         self.matched = None
+        self.number_command = number_command
 
     def add(self, ch):
         self.buf += ch
@@ -215,7 +216,8 @@ class CommandLine(Listenable):
 
         if cmd:
             if cmd.isdigit():
-                pass  # TODO: handle setting
+                if self.number_command:
+                    self.number_command.execute(cmd)
             elif cmd in self.commands:
                 self.commands[cmd].execute(*args)
             else:

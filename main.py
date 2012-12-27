@@ -38,6 +38,7 @@ class UI(VerticalLayout):
         self.add_bottom(create("command", CommandLineUI, False, termbox, None))
 
         create("playlist", PlaylistUI, False, termbox, status)
+        create("browser", BrowserUI, False, termbox)
 
 
 class Main(object):
@@ -148,7 +149,9 @@ class Main(object):
 
         args = [self, self.mpd, self.status, self.ui, self.msg]
         self.states = {"playlist": PlaylistState(*args),
-                "command": CommandState(*args)}
+                "browser": BrowserState(*args),
+                "command": CommandState(*args),
+                "search": SearchState(*args)}
         self.change_state("playlist")
 
 

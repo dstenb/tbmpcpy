@@ -68,7 +68,14 @@ class State(object):
                     # States
                     "1": lambda: self.listener.change_state("playlist"),
                     "2": lambda: self.listener.change_state("browser"),
-                    ":": lambda: self.listener.change_state("command")
+                    ":": lambda: self.listener.change_state("command"),
+                    "/": lambda: self.listener.change_state("search"),
+
+                    # Launch commands
+                    "c": lambda: self.deactivate("command",
+                        {"start_string": "consume ", "autocomplete": True }),
+                    "x": lambda: self.deactivate("command",
+                        {"start_string": "crossfade ", "autocomplete": True })
             }
             by_key = {}
 
@@ -104,13 +111,7 @@ class PlaylistState(State):
             "j": lambda: self.ui.playlist.select(1, True),
             "k": lambda: self.ui.playlist.select(-1, True),
             "g": lambda: self.ui.playlist.select(0),
-            "G": lambda: self.ui.playlist.select(sys.maxsize),
-            "c": lambda: self.deactivate("command",
-                {"start_string": "consume ",
-                    "autocomplete": True }),
-            "x": lambda: self.deactivate("command",
-                {"start_string": "crossfade ",
-                    "autocomplete": True })
+            "G": lambda: self.ui.playlist.select(sys.maxsize)
         })
         self.bindings.add_key_list({
             termbox.KEY_ENTER: lambda:
@@ -213,3 +214,45 @@ class CommandState(State):
             func()
         elif ch:
             self.commandline.add(ch)
+
+
+class SearchState(State):
+
+    def __init__(self, *args):
+        super(SearchState, self).__init__(*args, default_keys=False)
+
+        self.bindings.add_ch_list({
+        })
+        self.bindings.add_key_list({
+            termbox.KEY_ESC: lambda: self.deactivate()
+        })
+
+    def activate(self, unused_args={}):
+        if not (self.ui.main and self.ui.main.is_list()):
+            self.deactivate()
+
+    def deactivate(self, d={}):
+        self.listener.prev_state(d)
+
+
+class BrowserState(State):
+
+    def __init__(self, *args):
+        super(BrowserState, self).__init__(*args, default_keys=True)
+
+        self.bindings.add_ch_list({
+            "j": lambda: self.ui.browser.select(1, True),
+            "k": lambda: self.ui.browser.select(-1, True),
+            "g": lambda: self.ui.browser.select(0),
+            "G": lambda: self.ui.browser.select(sys.maxsize),
+        })
+        self.bindings.add_key_list({
+            termbox.KEY_ARROW_UP: lambda: self.ui.playlist.select(-1, True),
+            termbox.KEY_ARROW_DOWN: lambda: self.ui.playlist.select(1, True)
+        })
+
+    def activate(self, unused_args={}):
+        self.ui.set_main(self.ui.browser)
+
+    def deactivate(self, s, d):
+        self.listener.change_state(s, d)

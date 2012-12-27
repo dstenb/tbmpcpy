@@ -214,6 +214,12 @@ class PlaylistUI(ListUI, StatusListener):
         self._fix_bounds()
 
 
+class BrowserUI(ListUI, StatusListener):
+
+    def __init__(self, tb):
+        super(BrowserUI, self).__init__(tb, [])
+
+
 class CurrentSongUI(Component, StatusListener):
 
     def __init__(self, tb, status):

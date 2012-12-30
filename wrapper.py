@@ -7,10 +7,13 @@ class Changes:
     def __init__(self):
         self.changes = []
 
-    def add(self, _list):
+    def add(self, s):
+        if not s in self.changes:
+            self.changes.append(s)
+
+    def add_list(self, _list):
         for s in _list:
-            if not s in self.changes:
-                self.changes.append(s)
+            self.add(s)
 
     def get(self):
         c = self.changes
@@ -55,6 +58,9 @@ class MPDWrapper():
     def get_changes(self):
         return self.changes.get() if not self.in_idle else []
 
+    def has_changes(self):
+        return len(self.changes.changes)
+
     def idle(self):
         if self.connected and not self.in_idle:
             self.in_idle = True
@@ -68,7 +74,7 @@ class MPDWrapper():
             if not block:
                 self.mpd.send_noidle()
             changes = self.mpd.fetch_idle()
-            self.changes.add(changes)
+            self.changes.add_list(changes)
 
     def playlist(self):
         if self.connected:
@@ -77,11 +83,13 @@ class MPDWrapper():
 
     def player(self, name, *args):
         if self.connected:
+            self.changes.add("player")
             self.noidle()
             getattr(self.mpd, name)(*args)
 
     def option(self, name, *args):
         if self.connected:
+            self.changes.add("options")
             self.noidle()
             getattr(self.mpd, name)(*args)
 

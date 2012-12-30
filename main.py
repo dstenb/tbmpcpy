@@ -17,7 +17,8 @@ from ui import *
 from wrapper import *
 
 
-MPD_RECONNECT = 10
+MPD_RECONNECT = 10000
+MPD_UPDATE = 2000
 
 
 class UI(VerticalLayout):
@@ -45,10 +46,10 @@ class UI(VerticalLayout):
 class Main(object):
 
     def __init__(self, cfg):
+        self.mpd = MPDWrapper(cfg["host"], cfg["port"])
         self.termbox = None
         self.cfg = cfg
         self.states = {}
-        self.mpd = MPDWrapper(cfg["host"], cfg["port"])
         self.pstate = None
         self.state = None
 
@@ -79,64 +80,62 @@ class Main(object):
                     (self.mpd.host, self.mpd.port), 3)
 
     def event_loop(self):
-        curr = time_in_millis()
+        ts = time_in_millis()
         retry_conn = False
-        retry_timestamp = curr
+        retry_ts, idle_ts = ts, ts
+
         while True:
             self.ui.draw()
 
-            active = []
-            fds = [sys.stdin]
+            # Handle MPD connection
             if self.mpd.connected:
-                fds.append(self.mpd)
                 self.mpd.idle()
             elif not retry_conn:
                 retry_conn = True
-                retry_timestamp = curr
-            elif (curr - retry_timestamp) >= MPD_RECONNECT * 1000:
+                retry_ts = ts
+            elif (ts - retry_ts) >= MPD_RECONNECT:
                 retry_conn = False
                 self.connect()
                 self.auth()
 
-            try:
-                active, _, _ = select.select(fds, [], [], 1)
-            except select.error, err:
-                if err[0] == 4:
-                    self.handle_tb_event(self.termbox.peek_event(10))
-                else:
-                    raise err
+            # Handle termbox events
+            ev = self.termbox.peek_event(1000)
+            while ev:
+                (etype, ch, key, mod, w, h) = ev
 
-            curr = time_in_millis()
+                if etype == termbox.EVENT_RESIZE:
+                    self.ui.set_size(w, h)
+                elif etype == termbox.EVENT_KEY:
+                    self.state.key_event(ch, key, mod)
+
+                ev = self.termbox.peek_event()
+
+            ts = time_in_millis()
 
             # Update elapsed time if playing (rough estimate)
             if self.status.is_playing():
-                self.status.progress.update(curr)
+                self.status.progress.update(ts)
             else:
-                self.status.progress.set_last(curr)
-            self.msg.update(curr)
+                self.status.progress.set_last(ts)
 
-            if self.mpd in active:
+            # Update message timer
+            self.msg.update(ts)
+
+            # Update MPD data if necessary
+            if (ts - idle_ts) >= MPD_UPDATE or self.mpd.has_changes():
+                idle_ts = ts
                 self.mpd.noidle()
-
-            if sys.stdin in active:
-                while self.handle_tb_event(self.termbox.peek_event(10)):
-                    self.ui.draw()
-
-            self.status.update(self.mpd.get_changes())
+                changes = self.mpd.get_changes()
+                if "database" in changes:
+                    pass  # TODO: update database
+                if "stored_playlist" in changes:
+                    pass  # TODO: update stored playlists
+                self.status.update(changes)
 
     def exit(self):
         if self.termbox:
             self.termbox.close()
         self.mpd.disconnect()
-
-    def handle_tb_event(self, event):
-        if event:
-            (etype, ch, key, mod, w, h) = event
-
-            if etype == termbox.EVENT_RESIZE:
-                self.ui.set_size(w, h)
-            elif etype == termbox.EVENT_KEY:
-                self.state.key_event(ch, key, mod)
 
     def setup(self):
         self.termbox = termbox.Termbox()

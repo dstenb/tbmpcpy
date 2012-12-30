@@ -168,17 +168,10 @@ class PlaylistUI(ListUI, StatusListener):
         numw = 0
         if len(self.list) > 0:
             numw = int(math.floor(math.log10(len(self.list)))) + 2
-        num_str = "%s " % str(pos + 1)
-        time_str = " [%s] " % length_str(song.time)
-        left.add(num_str.rjust(numw + 1), termbox.BLUE, termbox.BLACK)
-        left.add(song.artist, termbox.RED, termbox.BLACK)
-        left.add(" - ", termbox.WHITE, termbox.BLACK)
-        left.add(song.title, termbox.YELLOW, termbox.BLACK)
-        left.add(" (", termbox.WHITE, termbox.BLACK)
-        left.add(song.album, termbox.GREEN, termbox.BLACK)
-        left.add(")", termbox.WHITE, termbox.BLACK)
-
-        right.add(time_str, termbox.BLUE, termbox.BLACK)
+        left.add(str(pos + 1).rjust(numw), termbox.BLUE, termbox.BLACK)
+        left.add(" %s - %s (%s)" % (song.artist, song.title, song.album),
+                termbox.WHITE, termbox.BLACK)
+        right.add(" [%s]" % length_str(song.time), termbox.BLUE, termbox.BLACK)
 
         if pos == self.list.sel:
             left.set_color(termbox.BLACK, termbox.WHITE)
@@ -291,9 +284,9 @@ class CommandLineUI(Component, CommandLineListener):
                         return "(" + d + ")" if d else ""
                     f.add("%3i " % (pos + 1), termbox.BLUE, termbox.BLACK)
                     f.add("%s " % self.matched[pos].name,
-                            termbox.RED, termbox.BLACK)
+                            termbox.WHITE, termbox.BLACK)
                     f.add(format_desc(self.matched[pos].description),
-                        termbox.YELLOW, termbox.BLACK)
+                        termbox.WHITE, termbox.BLACK)
                     if pos == self.sel:
                         f.set_bold()
                     yield f

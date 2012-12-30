@@ -3,6 +3,7 @@
 
 import math
 
+from browser import *
 from command import *
 from common import *
 from status import *
@@ -25,13 +26,12 @@ class MainComponent(Component):
 
     def select(self, index, rel=False):
         if self.is_list():
-            return self._select(index, rel)
-        return False  # TODO raise exception for debugging
+            self.list.select(index, rel)
 
     def selected(self):
         if self.is_list():
-            return self._selected()
-        return None  # TODO raise exception for debugging
+            return self.list.selected()
+        return None
 
     def search_start(self, d):
         if self.is_list():
@@ -109,26 +109,24 @@ class MessageUI(Component, MessageListener):
         self.show() if self.msg.has_message() else self.hide()
 
 
-class ListUI(MainComponent):
+class ListUI(MainComponent, ListListener):
 
     def __init__(self, tb, list):
         super(ListUI, self).__init__(tb, True)
         self.list = list
-        self.sel = 0
         self.start = 0
 
     def _fix_bounds(self):
         if len(self.list) > 0:
-            self.sel = min(max(0, self.sel), len(self.list) - 1)
-            if (self.sel - self.start) >= self.h:
-                self.start = self.sel - self.h + 1
-            if self.sel < self.start:
-                self.start = self.sel
+            if (self.list.sel - self.start) >= self.h:
+                self.start = self.list.sel - self.h + 1
+            if self.list.sel < self.start:
+                self.start = self.list.sel
             self.start = min(max(0, self.start), len(self.list) - 1)
 
     def _format(self, o, y, p):
         s = "%5i %5i %s" % (p, y, str(o))
-        return Format(s.ljust(self.w), termbox.RED if p == self.sel else
+        return Format(s.ljust(self.w), termbox.RED if p == self.list.sel else
                 termbox.WHITE)
 
     def draw(self):
@@ -139,15 +137,11 @@ class ListUI(MainComponent):
             f = self._format(self.list[pos], y, pos) if y < length else empty
             self.change_cells_format(0, y, f)
 
-    def select(self, index, rel=False):
-        if rel:
-            self.sel += index
-        else:
-            self.sel = index
+    def list_changed(self, l):
         self._fix_bounds()
 
-    def selected(self):
-        return self.sel
+    def list_selected_changed(self, l):
+        self._fix_bounds()
 
 
 def length_str(time):
@@ -166,7 +160,7 @@ class PlaylistUI(ListUI, StatusListener):
     def __init__(self, tb, status):
         super(PlaylistUI, self).__init__(tb, status.playlist)
         self.status = status
-        self.status.add_listener(self)
+        self.list.add_listener(self)
 
     def _format(self, song, unused_y, pos):
         left, right = Format(), Format()
@@ -186,7 +180,7 @@ class PlaylistUI(ListUI, StatusListener):
 
         right.add(time_str, termbox.BLUE, termbox.BLACK)
 
-        if pos == self.sel:
+        if pos == self.list.sel:
             left.set_color(termbox.BLACK, termbox.WHITE)
             right.set_color(termbox.BLACK, termbox.WHITE)
             left.add("".ljust(max(0, self.w - len(left.s))),
@@ -206,18 +200,28 @@ class PlaylistUI(ListUI, StatusListener):
                 self.change_cells_format(0, y, left)
                 self.change_cells_format(self.w - len(right.s), y, right)
 
-    def playlist_updated(self):
-        if len(self.status.playlist) > 0 and self.sel == -1:
-            self.start = self.sel = 0
-        else:
-            self.start = self.sel = -1
-        self._fix_bounds()
 
+class BrowserUI(ListUI, ListListener):
 
-class BrowserUI(ListUI, StatusListener):
+    def __init__(self, tb, browser):
+        super(BrowserUI, self).__init__(tb, browser)
+        self.list.add_listener(self)
 
-    def __init__(self, tb):
-        super(BrowserUI, self).__init__(tb, [])
+    def _format(self, song, unused_y, pos):
+        f = Format()
+
+        numw = 0
+        if len(self.list) > 0:
+            numw = int(math.floor(math.log10(len(self.list)))) + 2
+        num_str = "%s " % str(pos + 1)
+        f.add(num_str.rjust(numw + 1), termbox.BLUE, termbox.BLACK)
+        f.add(unicode(song), termbox.WHITE, termbox.BLACK)
+
+        if pos == self.list.sel:
+            f.set_color(termbox.BLACK, termbox.WHITE)
+            f.add("".ljust(max(0, self.w - len(f.s))),
+                    termbox.BLACK, termbox.WHITE)
+        return f
 
 
 class CurrentSongUI(Component, StatusListener):

@@ -1,3 +1,4 @@
+from browser import *
 from common import *
 from list import *
 from wrapper import *
@@ -10,6 +11,7 @@ class Song():
         self.artist = d.get("artist", "unknown")
         self.album = d.get("album", "unknown")
         self.title = d.get("title", "unknown")
+        self.file = d.get("file", "")
         self.genre = d.get("genre", "unknown")
         self.time = int(d.get("time", 0))
         self.pos = int(d.get("pos", 0))
@@ -70,7 +72,6 @@ class Status:
     def __init__(self, mpd, msg):
         self.mpd = mpd
         self.msg = msg
-        self.browser = Browser()
         self.playlist = Playlist()
         self.progress = Progress()
         self.options = {"consume": False,

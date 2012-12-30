@@ -3,6 +3,7 @@ class List(object):
     def __init__(self, items=[], listeners=[]):
         self.items = items
         self.listeners = listeners
+        self.sel = -1
 
     def __getitem__(self, index):
         return self.items[index]
@@ -10,38 +11,52 @@ class List(object):
     def __len__(self):
         return len(self.items)
 
+    def _fix_sel(self):
+        if len(self) > 0:
+            self.sel = min(max(0, self.sel), len(self) - 1)
+        else:
+            self.sel = -1
+
     def _notify(self):
         for o in self.listeners:
             o.list_changed(self)
+
+    def _notify_selected(self):
+        for o in self.listeners:
+            o.list_selected_changed(self)
 
     def add_listener(self, o):
         self.listeners.append(o)
 
     def set_list(self, items):
         self.items = items
+        self._fix_sel()
         self._notify()
 
+    def select(self, index, rel=False):
+        if rel:
+            self.sel += index
+        else:
+            self.sel = index
+        self._fix_sel()
+        self._notify_selected()
 
-class Path(object):
+    def selected(self):
+        if self.sel >= 0:
+            return self.items[self.sel]
+        return None
 
-    def __init__(self):
-        self.list = []
-
-    def push(self, s):
-        self.list.append(s)
-
-    def pop(self):
-        if len(self.list) > 0:
-            del self.list[-1]
-
-    def __str__(self):
-        return "/".join(self.list)
+    def selected_index(self):
+        return self.sel
 
 
-class Browser(List):
+class ListListener(object):
 
-    def __init__(self):
-        super(Browser, self).__init__(["Albums", "Singles", "Mixes"])
+    def list_changed(self, o):
+        pass
+
+    def list_selected_changed(self, o):
+        pass
 
 
 class Playlist(List):
@@ -53,4 +68,5 @@ class Playlist(List):
     def set_list(self, items, version):
         self.items = items
         self.version = version
+        self._fix_sel()
         self._notify()

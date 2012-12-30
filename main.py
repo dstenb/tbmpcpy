@@ -7,6 +7,7 @@ import sys
 import termbox
 import traceback
 
+from browser import *
 from common import *
 from components import *
 from list import *
@@ -21,7 +22,7 @@ MPD_RECONNECT = 10
 
 class UI(VerticalLayout):
 
-    def __init__(self, termbox, status, msg):
+    def __init__(self, termbox, status, msg, browser):
         super(UI, self).__init__(termbox)
 
         def create(name, cls, show, *args):
@@ -38,7 +39,7 @@ class UI(VerticalLayout):
         self.add_bottom(create("command", CommandLineUI, False, termbox, None))
 
         create("playlist", PlaylistUI, False, termbox, status)
-        create("browser", BrowserUI, False, termbox)
+        create("browser", BrowserUI, False, termbox, browser)
 
 
 class Main(object):
@@ -141,13 +142,15 @@ class Main(object):
         self.termbox = termbox.Termbox()
         self.msg = Message()
         self.status = Status(self.mpd, self.msg)
-        self.ui = UI(self.termbox, self.status, self.msg)
+        self.browser = Browser(self.mpd)
+        self.ui = UI(self.termbox, self.status, self.msg, self.browser)
         self.connect()
         self.auth()
 
+        self.browser.load()
         self.status.init()
 
-        args = [self, self.mpd, self.status, self.ui, self.msg]
+        args = [self, self.mpd, self.status, self.ui, self.msg, self.browser]
         self.states = {"playlist": PlaylistState(*args),
                 "browser": BrowserState(*args),
                 "command": CommandState(*args),

@@ -87,5 +87,17 @@ class MPDWrapper():
 
     def status(self):
         if self.connected:
+            self.noidle()
             return self.mpd.status()
         return None
+
+    def ls(self, s):
+        if self.connected:
+            self.noidle()
+            return self.mpd.lsinfo(s)
+        return []
+
+    def add(self, s):
+        if self.connected:
+            self.noidle()
+            self.mpd.add(s)

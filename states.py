@@ -44,10 +44,12 @@ class Keybindings:
 
 class State(object):
 
-    def __init__(self, listener, mpd, status, ui, msg, default_keys=False):
+    def __init__(self, listener, mpd, status, ui, msg, browser,
+            default_keys=False):
         self.listener = listener
         self.mpd = mpd
         self.status = status
+        self.browser = browser
         self.ui = ui
         self.msg = msg
 
@@ -108,17 +110,17 @@ class PlaylistState(State):
         super(PlaylistState, self).__init__(*args, default_keys=True)
 
         self.bindings.add_ch_list({
-            "j": lambda: self.ui.playlist.select(1, True),
-            "k": lambda: self.ui.playlist.select(-1, True),
-            "g": lambda: self.ui.playlist.select(0),
-            "G": lambda: self.ui.playlist.select(sys.maxsize)
+            "j": lambda: self.status.playlist.select(1, True),
+            "k": lambda: self.status.playlist.select(-1, True),
+            "g": lambda: self.status.playlist.select(0),
+            "G": lambda: self.status.playlist.select(sys.maxsize)
         })
         self.bindings.add_key_list({
             termbox.KEY_ENTER: lambda:
-                self.mpd.player("play", self.ui.playlist.selected())
-                    if self.ui.playlist.selected() >= 0 else False,
-            termbox.KEY_ARROW_UP: lambda: self.ui.playlist.select(-1, True),
-            termbox.KEY_ARROW_DOWN: lambda: self.ui.playlist.select(1, True)
+                self.mpd.player("play", self.status.playlist.sel)
+                    if self.status.playlist.sel >= 0 else False,
+            termbox.KEY_ARROW_UP: lambda: self.status.playlist.select(-1, True),
+            termbox.KEY_ARROW_DOWN: lambda: self.status.playlist.select(1, True)
         })
 
     def activate(self, unused_args={}):
@@ -241,14 +243,16 @@ class BrowserState(State):
         super(BrowserState, self).__init__(*args, default_keys=True)
 
         self.bindings.add_ch_list({
-            "j": lambda: self.ui.browser.select(1, True),
-            "k": lambda: self.ui.browser.select(-1, True),
-            "g": lambda: self.ui.browser.select(0),
-            "G": lambda: self.ui.browser.select(sys.maxsize),
+            "j": lambda: self.browser.select(1, True),
+            "k": lambda: self.browser.select(-1, True),
+            "g": lambda: self.browser.select(0),
+            "G": lambda: self.browser.select(sys.maxsize),
+            "u": lambda: self.browser.go_up()
         })
         self.bindings.add_key_list({
-            termbox.KEY_ARROW_UP: lambda: self.ui.playlist.select(-1, True),
-            termbox.KEY_ARROW_DOWN: lambda: self.ui.playlist.select(1, True)
+            termbox.KEY_ENTER: lambda: self.browser.enter(),
+            termbox.KEY_ARROW_UP: lambda: self.browser.select(-1, True),
+            termbox.KEY_ARROW_DOWN: lambda: self.browser.select(1, True)
         })
 
     def activate(self, unused_args={}):

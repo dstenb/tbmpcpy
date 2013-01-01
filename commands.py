@@ -142,6 +142,20 @@ def boolean_option_command(res, name):
     return BooleanOptionCommand(res, *d[name])
 
 
+#### Playlist commands ####
+class PlaylistClearCommand(Command):
+
+    def __init__(self, res):
+        super(PlaylistClearCommand, self).__init__(res, "clear",
+                "Clear the playlist")
+
+    def execute(self, *args):
+        try:
+            self.res.mpd.clear()
+        except CommandError:
+            raise CommandExecutionError("Couldn't execute 'clear' command")
+
+
 #### Browser commands ####
 class BrowserAddCommand(Command):
 

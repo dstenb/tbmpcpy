@@ -126,7 +126,8 @@ class PlaylistState(State):
             "j": (MainRelativeSelectCommand(res), ("1", )),
             "k": (MainRelativeSelectCommand(res), ("-1", )),
             "g": (MainSelectCommand(res), ("1", )),
-            "G": (MainSelectCommand(res), (str(sys.maxsize), ))
+            "G": (MainSelectCommand(res), (str(sys.maxsize), )),
+            "C": (PlaylistClearCommand(res), ())
         })
         self.bindings.add_key_list({
             termbox.KEY_ENTER: (PlayCommand(res), ()),
@@ -183,6 +184,7 @@ class CommandState(State):
         res = ResourceTuple(self.mpd, self.status, self.ui, self.browser)
 
         self.commands = {
+                "clear": PlaylistClearCommand(res),
                 "consume": boolean_option_command(res, "consume"),
                 "crossfade": CrossfadeOptionCommand(res),
                 "next": NextCommand(res),

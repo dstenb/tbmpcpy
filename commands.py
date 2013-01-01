@@ -156,6 +156,20 @@ class PlaylistClearCommand(Command):
             raise CommandExecutionError("Couldn't execute 'clear' command")
 
 
+class PlaylistGoToCurrentCommand(Command):
+
+    def __init__(self, res):
+        super(PlaylistGoToCurrentCommand, self).__init__(res, "current",
+                "Go to current")
+
+    def execute(self, *args):
+        try:
+            if self.res.status.current != None:
+                self.res.status.playlist.select(self.res.status.current.pos)
+        except CommandError:
+            raise CommandExecutionError("Couldn't execute 'clear' command")
+
+
 #### Browser commands ####
 class BrowserAddCommand(Command):
 

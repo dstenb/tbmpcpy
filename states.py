@@ -127,7 +127,8 @@ class PlaylistState(State):
             "k": (MainRelativeSelectCommand(res), ("-1", )),
             "g": (MainSelectCommand(res), ("1", )),
             "G": (MainSelectCommand(res), (str(sys.maxsize), )),
-            "C": (PlaylistClearCommand(res), ())
+            "C": (PlaylistClearCommand(res), ()),
+            "f": (PlaylistGoToCurrentCommand(res), ())
         })
         self.bindings.add_key_list({
             termbox.KEY_ENTER: (PlayCommand(res), ()),

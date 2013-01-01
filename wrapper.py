@@ -7,13 +7,10 @@ class Changes:
     def __init__(self):
         self.changes = []
 
-    def add(self, s):
-        if not s in self.changes:
-            self.changes.append(s)
-
-    def add_list(self, _list):
-        for s in _list:
-            self.add(s)
+    def add(self, *args):
+        for s in args:
+            if not s in self.changes:
+                self.changes.append(s)
 
     def get(self):
         c = self.changes
@@ -73,25 +70,24 @@ class MPDWrapper():
             self.in_idle = False
             if not block:
                 self.mpd.send_noidle()
-            changes = self.mpd.fetch_idle()
-            self.changes.add_list(changes)
+            self.changes.add(*self.mpd.fetch_idle())
 
     def playlist(self):
         if self.connected:
             return self.mpd.playlistinfo()
         return None
 
-    def player(self, name, *args):
+    def player(self, cmd, *args):
         if self.connected:
             self.changes.add("player")
             self.noidle()
-            getattr(self.mpd, name)(*args)
+            getattr(self.mpd, cmd)(*args)
 
-    def option(self, name, *args):
+    def option(self, cmd, *args):
         if self.connected:
             self.changes.add("options")
             self.noidle()
-            getattr(self.mpd, name)(*args)
+            getattr(self.mpd, cmd)(*args)
 
     def status(self):
         if self.connected:
@@ -99,10 +95,10 @@ class MPDWrapper():
             return self.mpd.status()
         return None
 
-    def ls(self, s):
+    def ls(self, path):
         if self.connected:
             self.noidle()
-            return self.mpd.lsinfo(s)
+            return self.mpd.lsinfo(path)
         return []
 
     def add(self, s):
@@ -111,8 +107,8 @@ class MPDWrapper():
             self.noidle()
             self.mpd.add(s)
 
-    def addid(self, s):
+    def add_and_play(self, s):
         if self.connected:
-            self.changes.add("playlist")
+            self.changes.add("playlist", "player")
             self.noidle()
-            return self.mpd.addid(s)
+            self.mpd.playid(self.mpd.addid(s))

@@ -36,6 +36,7 @@ class BrowserNode(object):
         self.mpd = mpd
         self.parent = parent
         self.sel = -1
+        self.ntype = ""
 
     def __len__(self):
         return 0
@@ -49,15 +50,6 @@ class BrowserNode(object):
     def selected(self):
         pass
 
-    def is_file(self):
-        return True
-
-    def is_song(self):
-        return False
-
-    def is_playlist(self):
-        return False
-
 
 class SongNode(BrowserNode):
 
@@ -65,16 +57,11 @@ class SongNode(BrowserNode):
         super(SongNode, self).__init__(mpd, parent)
         self.data = data
         self.path = Path(data.file)
+        self.ntype = "song"
 
     def __str__(self):
         return "%s - %s (%s)" % (self.data.artist,
                 self.data.title, self.data.album)
-
-    def is_file(self):
-        return True
-
-    def is_song(self):
-        return True
 
 
 class PlaylistNode(BrowserNode):
@@ -83,15 +70,10 @@ class PlaylistNode(BrowserNode):
         super(PlaylistNode, self).__init__(mpd, parent)
         self.data = data
         self.path = Path(data)
+        self.ntype = "playlist"
 
     def __str__(self):
         return self.data
-
-    def is_file(self):
-        return True
-
-    def is_playlist(self):
-        return True
 
 
 class DirectoryNode(BrowserNode):
@@ -100,7 +82,7 @@ class DirectoryNode(BrowserNode):
         super(DirectoryNode, self).__init__(mpd, parent)
         self.children = []
         self.path = path
-        self.sel = -1
+        self.ntype = "directory"
 
     def __len__(self):
         return len(self.children)
@@ -153,9 +135,6 @@ class DirectoryNode(BrowserNode):
             return self.children[self.sel]
         return None
 
-    def is_file(self):
-        return False
-
 
 class Browser(List):
 
@@ -174,11 +153,11 @@ class Browser(List):
         selnode = self.seltree.selected()
 
         if selnode != None:
-            if selnode.is_song():
-                print(self.mpd.addid(selnode.data.file))
-            elif selnode.is_playlist():
+            if selnode.ntype == "song":
+                self.mpd.add_and_play(selnode.data.file)
+            elif selnode.ntype == "playlist":
                 print(selnode.data)  # TODO
-            else:
+            elif selnode.ntype == "directory":
                 self._set_selected(selnode)
 
     def go_up(self):

@@ -183,7 +183,6 @@ class CommandState(State):
         res = ResourceTuple(self.mpd, self.status, self.ui, self.browser)
 
         self.commands = {
-                "add": BrowserAddCommand(res),
                 "consume": boolean_option_command(res, "consume"),
                 "crossfade": CrossfadeOptionCommand(res),
                 "next": NextCommand(res),

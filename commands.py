@@ -152,7 +152,7 @@ class BrowserAddCommand(Command):
     def execute(self, *args):
         if isinstance(self.res.ui.main, BrowserUI):
             selected = self.res.browser.selected()
-            if selected != None:
+            if selected != None and selected.ntype in ("directory", "song"):
                 self.res.mpd.add(unicode(selected.path))
                 self.res.browser.select(1, True)
 

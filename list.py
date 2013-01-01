@@ -64,6 +64,7 @@ class Playlist(List):
     def __init__(self):
         super(Playlist, self).__init__()
         self.version = 0
+        self.playtime = 0
 
     def set_list(self, items, version):
         self.items = items

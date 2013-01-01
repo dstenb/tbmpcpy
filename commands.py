@@ -1,6 +1,7 @@
 import sys
 
 from command import *
+from components import *
 from wrapper import *
 
 
@@ -34,8 +35,7 @@ class PrevCommand(Command):
 class StopCommand(Command):
 
     def __init__(self, res):
-        super(StopCommand, self).__init__(res, "stop",
-                "Stop playing")
+        super(StopCommand, self).__init__(res, "stop", "Stop playing")
 
     def execute(self, *unused_args):
         try:
@@ -44,17 +44,30 @@ class StopCommand(Command):
             raise CommandExecutionError("Couldn't execute 'stop' command")
 
 
+class PlayCommand(Command):
+
+    def __init__(self, res):
+        super(PlayCommand, self).__init__(res, "play", "Play song")
+
+    def execute(self, *args):
+        try:
+            if self.res.status.playlist.sel >= 0:
+                self.res.mpd.player("play", self.res.status.playlist.sel)
+        except CommandError:
+            raise CommandExecutionError("Couldn't execute 'play' command")
+
+
 class ToggleCommand(Command):
 
     def __init__(self, res):
-        super(ToggleCommand, self).__init__(res, "toggle",
-                "Play/pause")
+        super(ToggleCommand, self).__init__(res, "toggle", "Play/pause")
 
     def execute(self, *unused_args):
-        if self.res.status.state != "play":
-            self.res.mpd.player("play")
-        else:
-            self.res.mpd.player("pause")
+        s = "play" if self.res.status.state != "play" else "pause"
+        try:
+            self.res.mpd.player(s)
+        except CommandError:
+            raise CommandExecutionError("Couldn't execute '%s' command" % s)
 
 
 #### Playback options commands ####
@@ -129,6 +142,51 @@ def boolean_option_command(res, name):
     return BooleanOptionCommand(res, *d[name])
 
 
+#### Browser commands ####
+class BrowserAddCommand(Command):
+
+    def __init__(self, res):
+        super(BrowserAddCommand, self).__init__(res, "add",
+                "Add browser items to playlist")
+
+    def execute(self, *args):
+        if isinstance(self.res.ui.main, BrowserUI):
+            selected = self.res.browser.selected()
+            if selected != None:
+                self.res.mpd.add(unicode(selected.path))
+                self.res.browser.select(1, True)
+
+
+class BrowserUpdateCommand(Command):
+
+    def __init__(self, res):
+        super(BrowserUpdateCommand, self).__init__(res, "update",
+                "Update the currently selected directory")
+
+    def execute(self, *args):
+        pass
+
+
+class BrowserEnterCommand(Command):
+
+    def __init__(self, res):
+        super(BrowserEnterCommand, self).__init__(res, "etner",
+                "Enter directory/load file")
+
+    def execute(self, *args):
+        self.res.browser.enter()
+
+
+class BrowserGoUpCommand(Command):
+
+    def __init__(self, res):
+        super(BrowserGoUpCommand, self).__init__(res, "go_up",
+                "Go to the parent directory")
+
+    def execute(self, *unused_args):
+        self.res.browser.go_up()
+
+
 #### Application-specific commands ####
 class MainSelectCommand(Command):
 
@@ -146,11 +204,24 @@ class MainSelectCommand(Command):
             self.res.ui.main.select(digit - 1)
 
 
+class MainRelativeSelectCommand(Command):
+
+    def __init__(self, res):
+        super(MainRelativeSelectCommand, self).__init__(res, "", "")
+
+    def execute(self, *args):
+        if len(args) == 0:
+            raise MissingArgException("requires one argument")
+        index = int(args[0])
+
+        if self.res.ui.main and self.res.ui.main.is_list():
+            self.res.ui.main.select(index, True)
+
+
 class QuitCommand(Command):
 
     def __init__(self, res):
-        super(QuitCommand, self).__init__(res, "quit",
-                "Close the program")
+        super(QuitCommand, self).__init__(res, "quit", "Close the program")
 
     def execute(self, *args):
         sys.exit(args[0] if len(args) > 0 else 0)

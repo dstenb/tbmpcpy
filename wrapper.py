@@ -107,5 +107,12 @@ class MPDWrapper():
 
     def add(self, s):
         if self.connected:
+            self.changes.add("playlist")
             self.noidle()
             self.mpd.add(s)
+
+    def addid(self, s):
+        if self.connected:
+            self.changes.add("playlist")
+            self.noidle()
+            return self.mpd.addid(s)

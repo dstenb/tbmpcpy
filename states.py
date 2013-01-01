@@ -9,37 +9,26 @@ import math
 import sys
 
 
-def length_str(time):
-    m = time / 60
-    s = time % 60
-
-    if m <= 0:
-        return "--:--"
-    elif m > 99:
-        return str(m) + "m"
-    return str(m).zfill(2) + ":" + str(s).zfill(2)
-
-
 class Keybindings:
     def __init__(self, _ch={}, _key={}):
         self.by_ch = _ch
         self.by_key = _key
 
-    def add_ch(self, ch, func):
-        self.by_ch[ch] = func
+    def add_ch(self, ch, cpair):
+        self.by_ch[ch] = cpair
 
     def add_ch_list(self, ch_list):
         self.by_ch.update(ch_list)
 
-    def add_key(self, key, func):
-        self.by_key[key] = func
+    def add_key(self, key, cpair):
+        self.by_key[key] = cpair
 
     def add_key_list(self, key_list):
         self.by_key.update(key_list)
 
     def get(self, ch, key):
-        func = self.by_ch.get(ch, None) or self.by_key.get(key, None)
-        return func
+        p = self.by_ch.get(ch, None) or self.by_key.get(key, None)
+        return p
 
 
 class State(object):
@@ -56,28 +45,26 @@ class State(object):
         by_ch, by_key = {}, {}
 
         if default_keys:
+            res = ResourceTuple(self.mpd, self.status, self.ui, self.browser)
             by_ch = {
-                    "q": lambda: sys.exit(0),
+                    # Application commands
+                    "q": (QuitCommand(res), ()),
 
                     # Player control
-                    "P": lambda: self.mpd.player("play") if
-                      self.status.state != "play" else
-                      self.mpd.player("pause"),
-                    "s": lambda: self.mpd.player("stop"),
-                    "n": lambda: self.mpd.player("next"),
-                    "p": lambda: self.mpd.player("previous"),
+                    "P": (ToggleCommand(res), ()),
+                    "s": (StopCommand(res), ()),
+                    "n": (NextCommand(res), ()),
+                    "p": (PrevCommand(res), ()),
 
                     # States
-                    "1": lambda: self.listener.change_state("playlist"),
-                    "2": lambda: self.listener.change_state("browser"),
-                    ":": lambda: self.listener.change_state("command"),
-                    "/": lambda: self.listener.change_state("search"),
+                    "1": (ChangeStateCommand(self), ("playlist", )),
+                    "2": (ChangeStateCommand(self), ("browser", )),
+                    ":": (ChangeStateCommand(self), ("command", )),
+                    "/": (ChangeStateCommand(self), ("search", )),
 
                     # Launch commands
-                    "c": lambda: self.deactivate("command",
-                        {"start_string": "consume ", "autocomplete": True }),
-                    "x": lambda: self.deactivate("command",
-                        {"start_string": "crossfade ", "autocomplete": True })
+                    "c": (EnterCommand(self), ("consume ", True)),
+                    "x": (EnterCommand(self), ("crossfade ", True))
             }
             by_key = {}
 
@@ -86,13 +73,20 @@ class State(object):
     def activate(self, unused_args={}):
         pass
 
-    def deactivate(self):
-        pass
+    def deactivate(self, state=None, d={}):
+        if state:
+            self.listener.change_state(state, d)
+        else:
+            self.listener.prev_state()
 
     def key_event(self, ch, key, unused_mod):
-        func = self.bindings.get(ch, key)
-        if func:
-            func()
+        t = self.bindings.get(ch, key)
+        if t:
+            cmd, args = t
+            try:
+                cmd.execute(*args)
+            except CommandExecutionError, err:
+                self.msg.error(unicode(err), 2)
 
 
 class StateListener:
@@ -104,30 +98,45 @@ class StateListener:
         pass
 
 
+class StateCommand(Command):
+        def __init__(self, state):
+            self.state = state
+
+
+class ChangeStateCommand(StateCommand):
+    def execute(self, new_state=None, d={}):
+        self.state.deactivate(new_state, d)
+
+
+class EnterCommand(StateCommand):
+    def execute(self, start_string, autocomplete):
+        d = {"start_string": start_string,
+                "autocomplete": autocomplete}
+        self.state.deactivate("command", d)
+
+
 class PlaylistState(State):
 
     def __init__(self, *args):
         super(PlaylistState, self).__init__(*args, default_keys=True)
 
+        res = ResourceTuple(self.mpd, self.status, self.ui, self.browser)
+
         self.bindings.add_ch_list({
-            "j": lambda: self.status.playlist.select(1, True),
-            "k": lambda: self.status.playlist.select(-1, True),
-            "g": lambda: self.status.playlist.select(0),
-            "G": lambda: self.status.playlist.select(sys.maxsize)
+            "j": (MainRelativeSelectCommand(res), ("1", )),
+            "k": (MainRelativeSelectCommand(res), ("-1", )),
+            "g": (MainSelectCommand(res), ("1", )),
+            "G": (MainSelectCommand(res), (str(sys.maxsize), ))
         })
         self.bindings.add_key_list({
-            termbox.KEY_ENTER: lambda:
-                self.mpd.player("play", self.status.playlist.sel)
-                    if self.status.playlist.sel >= 0 else False,
-            termbox.KEY_ARROW_UP: lambda: self.status.playlist.select(-1, True),
-            termbox.KEY_ARROW_DOWN: lambda: self.status.playlist.select(1, True)
+            termbox.KEY_ENTER: (PlayCommand(res), ()),
+            termbox.KEY_ARROW_DOWN: (MainRelativeSelectCommand(res), ("1", )),
+            termbox.KEY_ARROW_UP: (MainRelativeSelectCommand(res), ("-1", ))
         })
 
     def activate(self, unused_args={}):
         self.ui.set_main(self.ui.playlist)
-
-    def deactivate(self, s, d):
-        self.listener.change_state(s, d)
+        self.ui.show_top(self.ui.playlist_bar)
 
 
 class CommandState(State):
@@ -136,36 +145,59 @@ class CommandState(State):
         super(CommandState, self).__init__(*args, default_keys=False)
 
         self.bindings.add_key_list({
-            termbox.KEY_ARROW_DOWN: lambda: self.arrow_down(),
-            termbox.KEY_ARROW_UP: lambda: self.arrow_up(),
-            termbox.KEY_ENTER: lambda: self.execute(),
-            termbox.KEY_BACKSPACE2: lambda: self.commandline.remove_last(),
-            termbox.KEY_SPACE: lambda: self.commandline.add(" "),
-            termbox.KEY_TAB: lambda: self.commandline.autocomplete(),
-            termbox.KEY_ESC: lambda: self.deactivate()
+            termbox.KEY_ARROW_DOWN: (self.IterCommand(self), (1, )),
+            termbox.KEY_ARROW_UP: (self.IterCommand(self), (-1, )),
+            termbox.KEY_ENTER: (self.ExecuteCommand(self), ()),
+            termbox.KEY_BACKSPACE2: (self.RemoveLastCommand(self), ()),
+            termbox.KEY_SPACE: (self.AddCommand(self), (" ", )),
+            termbox.KEY_TAB: (self.AutocompleteCommand(self), (True, )),
+            termbox.KEY_ESC: (ChangeStateCommand(self), ())
         })
 
         self._setup_commands()
 
+    class AutocompleteCommand(StateCommand):
+        def execute(self, down):
+            self.state.commandline.autocomplete(down)
+
+    class ExecuteCommand(StateCommand):
+        def execute(self):
+            self.state.execute()
+
+    class AddCommand(StateCommand):
+        def execute(self, s):
+            self.state.commandline.add(s)
+
+    class IterCommand(StateCommand):
+        def execute(self, dir):
+            if self.state.commandline.autocompleted():
+                self.state.commandline.autocomplete(dir > 0)
+            else:
+                pass  # TODO: handle commandline history
+
+    class RemoveLastCommand(StateCommand):
+        def execute(self):
+            self.state.commandline.remove_last()
+
     def _setup_commands(self):
-        res = ResourceTuple(self.mpd, self.status, self.ui)
+        res = ResourceTuple(self.mpd, self.status, self.ui, self.browser)
 
         self.commands = {
+                "add": BrowserAddCommand(res),
                 "consume": boolean_option_command(res, "consume"),
+                "crossfade": CrossfadeOptionCommand(res),
+                "next": NextCommand(res),
+                "playpause": ToggleCommand(res),
+                "previous": PrevCommand(res),
+                "q": QuitCommand(res),
+                "quit": QuitCommand(res),
                 "random": boolean_option_command(res, "random"),
                 "repeat": boolean_option_command(res, "repeat"),
                 "single": boolean_option_command(res, "single"),
-                "crossfade": CrossfadeOptionCommand(res),
-                "next": NextCommand(res),
-                "previous": PrevCommand(res),
-                "playpause": ToggleCommand(res),
-                "q": QuitCommand(res),
-                "quit": QuitCommand(res),
                 "stop": StopCommand(res)
         }
 
         number_command = MainSelectCommand(res)
-
         self.commandline = CommandLine(self.commands, number_command)
         self.ui.command.set_command_line(self.commandline)
 
@@ -179,23 +211,11 @@ class CommandState(State):
         if args.get("autocomplete", False):
             self.commandline.autocomplete()
 
-    def deactivate(self):
+    def deactivate(self, s=None, d={}):
         self.commandline.clear()
         self.ui.command.hide()
         self.ui.command.fix_cursor()
         self.listener.prev_state()
-
-    def arrow_down(self):
-        if self.commandline.autocompleted():
-            self.commandline.autocomplete(True)
-        else:
-            pass  # TODO: handle commandline history
-
-    def arrow_up(self):
-        if self.commandline.autocompleted():
-            self.commandline.autocomplete(False)
-        else:
-            pass  # TODO: handle commandline history
 
     def execute(self):
         try:
@@ -207,13 +227,19 @@ class CommandState(State):
         except WrongArgException, err:
             self.msg.error("Invalid argument '%s' (%s)" %
                     (err.arg, err.description), 2)
+        except CommandExecutionError, err:
+            self.msg.error(unicode(err), 2)
 
         self.deactivate()
 
     def key_event(self, ch, key, unused_mod):
-        func = self.bindings.get(ch, key)
-        if func:
-            func()
+        t = self.bindings.get(ch, key)
+        if t:
+            cmd, args = t
+            try:
+                cmd.execute(*args)
+            except CommandExecutionError, err:
+                self.msg.error(unicode(err), 2)
         elif ch:
             self.commandline.add(ch)
 
@@ -226,15 +252,12 @@ class SearchState(State):
         self.bindings.add_ch_list({
         })
         self.bindings.add_key_list({
-            termbox.KEY_ESC: lambda: self.deactivate()
+            termbox.KEY_ESC: (ChangeStateCommand(self), ())
         })
 
     def activate(self, unused_args={}):
         if not (self.ui.main and self.ui.main.is_list()):
             self.deactivate()
-
-    def deactivate(self, d={}):
-        self.listener.prev_state(d)
 
 
 class BrowserState(State):
@@ -242,21 +265,23 @@ class BrowserState(State):
     def __init__(self, *args):
         super(BrowserState, self).__init__(*args, default_keys=True)
 
+        res = ResourceTuple(self.mpd, self.status, self.ui, self.browser)
+
         self.bindings.add_ch_list({
-            "j": lambda: self.browser.select(1, True),
-            "k": lambda: self.browser.select(-1, True),
-            "g": lambda: self.browser.select(0),
-            "G": lambda: self.browser.select(sys.maxsize),
-            "u": lambda: self.browser.go_up()
+            "j": (MainRelativeSelectCommand(res), ("1", )),
+            "k": (MainRelativeSelectCommand(res), ("-1", )),
+            "g": (MainSelectCommand(res), ("1", )),
+            "G": (MainSelectCommand(res), (str(sys.maxsize), )),
+            "u": (BrowserGoUpCommand(res), ())
         })
         self.bindings.add_key_list({
-            termbox.KEY_ENTER: lambda: self.browser.enter(),
-            termbox.KEY_ARROW_UP: lambda: self.browser.select(-1, True),
-            termbox.KEY_ARROW_DOWN: lambda: self.browser.select(1, True)
+            termbox.KEY_ENTER: (BrowserEnterCommand(res), ()),
+            termbox.KEY_SPACE: (BrowserAddCommand(res), ()),
+            termbox.KEY_BACKSPACE2: (BrowserGoUpCommand(res), ()),
+            termbox.KEY_ARROW_DOWN: (MainRelativeSelectCommand(res), ("1", )),
+            termbox.KEY_ARROW_UP: (MainRelativeSelectCommand(res), ("-1", ))
         })
 
     def activate(self, unused_args={}):
         self.ui.set_main(self.ui.browser)
-
-    def deactivate(self, s, d):
-        self.listener.change_state(s, d)
+        self.ui.show_top(self.ui.browser_bar)

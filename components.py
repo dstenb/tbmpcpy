@@ -3,16 +3,13 @@
 
 import math
 
+from config import *
+
 from browser import *
 from command import *
 from common import *
 from status import *
 from ui import *
-
-# Progress bar formatting
-marker_c, marker_e, marker_r = u"╼", u"─", u"·"
-color_elapsed = (termbox.WHITE, termbox.BLACK)
-color_remaining = (termbox.BLACK, termbox.BLACK)
 
 
 class MainComponent(Component):
@@ -46,7 +43,7 @@ class MainComponent(Component):
     def search_prev(self):
         if self.is_list():
             return self._search_prev()
-        return None  #TODO raise exception for debugging
+        return None  # TODO raise exception for debugging
 
 
 class ProgressBarUI(Component, StatusListener):
@@ -68,14 +65,16 @@ class ProgressBarUI(Component, StatusListener):
     def _format_playing(self, elapsed):
         ew = max(0, int(elapsed * self.w))
         f = Format()
-        f.add(marker_c.rjust(ew, marker_e), *color_elapsed)
-        f.add(u"".ljust(self.w - ew, marker_r), *color_remaining)
+        f.add(symbol_progress_c.rjust(ew, symbol_progress_e),
+                *color_progress_elapsed)
+        f.add(u"".ljust(self.w - ew, symbol_progress_r),
+                *color_progress_remaining)
         f.set_bold()
         return f
 
     def _format_stopped(self):
         f = Format()
-        f.add(u"".ljust(self.w, marker_r), *color_remaining)
+        f.add(u"".ljust(self.w, symbol_progress_r), *color_progress_remaining)
         f.set_bold()
         return f
 
@@ -89,20 +88,13 @@ class MessageUI(Component, MessageListener):
         self.msg = msg
         self.msg.add_listener(self)
 
-    def get_colors(self):
-        colors = {"info": (termbox.WHITE, termbox.BLACK),
-                "warning": (termbox.YELLOW, termbox.BLACK),
-                "error": (termbox.RED, termbox.BLACK)}
-        return colors[self.msg.level]
-
     def text(self):
-        prefix = {"info": "Info", "warning": "Warning", "error": "Error"}
-        return " %s: %s" % (prefix[self.msg.level], self.msg.text)
+        return " %s: %s" % (text_msg_prefix[self.msg.level], self.msg.text)
 
     def draw(self):
         if self.msg.has_message():
             f = Format()
-            f.add(self.text(), *self.get_colors())
+            f.add(self.text(), *color_msg[self.msg.level])
             self.change_cells_format(0, 0, f)
 
     def message_changed(self, unused_msg):
@@ -133,8 +125,8 @@ class ListUI(MainComponent, ListListener):
         length = len(self.list)
         empty = Format("".ljust(self.w))
         for y in range(self.h):
-            pos = y + self.start
-            f = self._format(self.list[pos], y, pos) if y < length else empty
+            p = y + self.start
+            f = self._format(self.list[p], y, p) if p < length else empty
             self.change_cells_format(0, y, f)
 
     def list_changed(self, l):
@@ -155,6 +147,14 @@ def length_str(time):
     return str(m).zfill(2) + ":" + str(s).zfill(2)
 
 
+def playtime_str(time):
+    return ", ".join(filter(lambda s: not s.startswith("0"),
+            ["%i days" % (time / (24 * 60 * 60)),
+            "%i hours" % (time / (60 * 60) % 24),
+            "%i minutes" % (time / 60 % 60),
+            "%i seconds" % (time % (60))]))
+
+
 class PlaylistUI(ListUI, StatusListener):
 
     def __init__(self, tb, status):
@@ -168,16 +168,16 @@ class PlaylistUI(ListUI, StatusListener):
         numw = 0
         if len(self.list) > 0:
             numw = int(math.floor(math.log10(len(self.list)))) + 2
-        left.add(str(pos + 1).rjust(numw), termbox.BLUE, termbox.BLACK)
-        left.add(" %s - %s (%s)" % (song.artist, song.title, song.album),
-                termbox.WHITE, termbox.BLACK)
-        right.add(" [%s]" % length_str(song.time), termbox.BLUE, termbox.BLACK)
+        left.add(str(pos + 1).rjust(numw), *color_playlist_number)
+        left.add(" %s - %s" % (song.artist, song.title),
+                *color_playlist_line)
+        right.add(" [%s]" % length_str(song.time), *color_playlist_time)
 
         if pos == self.list.sel:
-            left.set_color(termbox.BLACK, termbox.WHITE)
-            right.set_color(termbox.BLACK, termbox.WHITE)
+            left.set_color(*color_playlist_selected)
+            right.set_color(*color_playlist_selected)
             left.add("".ljust(max(0, self.w - len(left.s))),
-                    termbox.BLACK, termbox.WHITE)
+                    *color_playlist_selected)
         if song is self.status.current:
             left.set_bold()
             right.set_bold()
@@ -194,6 +194,43 @@ class PlaylistUI(ListUI, StatusListener):
                 self.change_cells_format(self.w - len(right.s), y, right)
 
 
+class BrowserBar(Component, ListListener):
+
+    def __init__(self, tb, browser):
+        super(BrowserBar, self).__init__(tb)
+        self.browser = browser
+        self.browser.add_listener(self)
+
+    def draw(self):
+        f = Format()
+        f.add(" Browse > ", termbox.WHITE | termbox.BOLD, termbox.BLACK)
+        f.add(" > ".join(self.browser.seltree.path.list),
+                termbox.WHITE, termbox.BLACK)
+        self.change_cells_format(0, 0, f)
+
+
+class PlaylistBar(Component, ListListener):
+
+    def __init__(self, tb, playlist):
+        super(PlaylistBar, self).__init__(tb)
+        self.playlist = playlist
+        self.playlist.add_listener(self)
+        self.len_str = ""
+
+    def draw(self):
+        f = Format()
+        f.add(" Playlist ", termbox.WHITE | termbox.BOLD, termbox.BLACK)
+        f.add(self.len_str, termbox.WHITE, termbox.BLACK)
+        self.change_cells_format(0, 0, f)
+
+    def list_changed(self, unused_list):
+        self.len_str = "(%i items" % len(self.playlist)
+        if self.playlist.playtime > 0:
+            self.len_str += ", %s)" % playtime_str(self.playlist.playtime)
+        else:
+            self.len_str += ")"
+
+
 class BrowserUI(ListUI, ListListener):
 
     def __init__(self, tb, browser):
@@ -207,13 +244,13 @@ class BrowserUI(ListUI, ListListener):
         if len(self.list) > 0:
             numw = int(math.floor(math.log10(len(self.list)))) + 2
         num_str = "%s " % str(pos + 1)
-        f.add(num_str.rjust(numw + 1), termbox.BLUE, termbox.BLACK)
-        f.add(unicode(song), termbox.WHITE, termbox.BLACK)
+        f.add(num_str.rjust(numw + 1), *color_browser_number)
+        f.add(unicode(song), *color_browser_line)
 
         if pos == self.list.sel:
-            f.set_color(termbox.BLACK, termbox.WHITE)
+            f.set_color(*color_browser_selected)
             f.add("".ljust(max(0, self.w - len(f.s))),
-                    termbox.BLACK, termbox.WHITE)
+                    *color_browser_selected)
         return f
 
 
@@ -234,8 +271,7 @@ class CurrentSongUI(Component, StatusListener):
 
     def _song_format(self, song):
         f = Format()
-        state_dict = {"play":  u">", "stop": "[]", "pause": u"||"}
-        f.add(" " + state_dict.get(self.status.state, ""),
+        f.add(" " + symbol_player_states.get(self.status.state, ""),
                 termbox.WHITE, termbox.BLACK)
         if song:
             f.add(" %s - %s - %s" % (song.artist, song.title, song.album),
@@ -282,11 +318,11 @@ class CommandLineUI(Component, CommandLineListener):
                 if y < length:
                     def format_desc(d):
                         return "(" + d + ")" if d else ""
-                    f.add("%3i " % (pos + 1), termbox.BLUE, termbox.BLACK)
+                    f.add("%3i " % (pos + 1), *color_cmdline_number)
                     f.add("%s " % self.matched[pos].name,
-                            termbox.WHITE, termbox.BLACK)
+                            *color_cmdline_name)
                     f.add(format_desc(self.matched[pos].description),
-                        termbox.WHITE, termbox.BLACK)
+                            *color_cmdline_description)
                     if pos == self.sel:
                         f.set_bold()
                     yield f
@@ -319,7 +355,7 @@ class CommandLineUI(Component, CommandLineListener):
 
     def fix_cursor(self):
         if self.visible:
-            self.tb.set_cursor(len(self.lines[-1]), self.y + self.h -1)
+            self.tb.set_cursor(len(self.lines[-1]), self.y + self.h - 1)
         else:
             self.tb.hide_cursor()
 
@@ -330,7 +366,7 @@ class CommandLineUI(Component, CommandLineListener):
 
     def line_changed(self, unused_cl):
         line = ":" + self.cl.buf
-        self.lines = [line[i:i+self.w] for i in range(0, len(line), self.w)]
+        self.lines = [line[i:i + self.w] for i in range(0, len(line), self.w)]
         self.fix_height()
         self.fix_cursor()
 

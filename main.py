@@ -32,6 +32,10 @@ class UI(VerticalLayout):
             setattr(self, name, o)
             return o
 
+        self.add_top(create("browser_bar", BrowserBar, True, termbox, browser))
+        self.add_top(create("playlist_bar", PlaylistBar, True, termbox,
+            status.playlist))
+
         self.add_bottom(create("current_song", CurrentSongUI, True, termbox,
             status))
         self.add_bottom(create("progress_bar", ProgressBarUI, True, termbox,
@@ -41,6 +45,13 @@ class UI(VerticalLayout):
 
         create("playlist", PlaylistUI, False, termbox, status)
         create("browser", BrowserUI, False, termbox, browser)
+
+    def show_top(self, o):
+        for oc in self.top:
+            if oc is o:
+                oc.show()
+            else:
+                oc.hide()
 
 
 class Main(object):

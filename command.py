@@ -6,7 +6,7 @@ from common import *
 # Vi-like command line, with command and argument autocomplete.
 # The code is generic except for ResourceTuple
 
-ResourceTuple = namedtuple("ResourceTuple", "mpd status ui")
+ResourceTuple = namedtuple("ResourceTuple", "mpd status ui browser")
 
 
 MatchTuple = namedtuple("MatchTuple", "name description")

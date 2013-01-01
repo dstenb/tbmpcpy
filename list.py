@@ -57,17 +57,3 @@ class ListListener(object):
 
     def list_selected_changed(self, o):
         pass
-
-
-class Playlist(List):
-
-    def __init__(self):
-        super(Playlist, self).__init__()
-        self.version = 0
-        self.playtime = 0
-
-    def set_list(self, items, version):
-        self.items = items
-        self.version = version
-        self._fix_sel()
-        self._notify()

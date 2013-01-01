@@ -18,6 +18,48 @@ class Song():
         self.songid = int(d.get("id", -1))
 
 
+class Playlist(List):
+
+    def __init__(self):
+        super(Playlist, self).__init__()
+        self.version = 0
+        self.playtime = 0
+
+    def _append(self, new):
+        self.items += new
+
+    def _cut(self, pos):
+        self.items = self.items[:pos]
+
+    def init(self, _songs, version):
+        songs = []
+        for d in _songs:
+            songs.append(Song(d))
+        self.set_list(songs, version)
+
+    def set_list(self, items, version):
+        self.items = items
+        self.version = version
+        self.playtime = 0
+        for v in self.items:
+            self.playtime += v.time
+        self._fix_sel()
+        self._notify()
+
+    def update(self, changelist, version, real_len):
+        new = []
+
+        for d in changelist:
+            new.append(Song(d))
+        if len(new) > 0:
+            self._cut(new[0].pos)
+            self._append(new)
+
+        if real_len < len(self):
+            self._cut(real_len - len(self))
+        self.set_list(self.items, version)
+
+
 class Progress(object):
 
     def __init__(self):
@@ -52,9 +94,6 @@ class StatusListener():
     def option_changed(self, o, b):
         pass
 
-    def playlist_changed(self):
-        pass
-
     def state_changed(self, state):
         pass
 
@@ -74,11 +113,13 @@ class Status:
         self.msg = msg
         self.playlist = Playlist()
         self.progress = Progress()
-        self.options = {"consume": False,
+        self.options = {
+                "consume": False,
                 "random": False,
                 "repeat": False,
                 "single": False,
-                "xfade": 0}
+                "xfade": 0
+        }
         self.current = None
         self.state = ""
         self.listeners = []
@@ -102,13 +143,8 @@ class Status:
             for o in self.listeners:
                 o.option_changed(opt, b)
 
-    def _set_playlist(self, _songs, version):
-        songs = []
-        for d in _songs:
-            songs.append(Song(d))
-        self.playlist.set_list(songs, version)
-        for o in self.listeners:
-            o.playlist_changed()
+    def _set_playlist(self, songs, version):
+        self.playlist.init(songs, version)
 
     def _set_state(self, state):
         if self.state != state:
@@ -127,9 +163,9 @@ class Status:
             return
         self._set_playlist(self.mpd.playlist(), int(results["playlist"]))
         self._set_state(results.get("state", "unknown"))
-        self._update_options(results)
         self._set_current(int(results.get("song", -1)))
         self._set_elapsed(int(results.get("elapsed", "0").split(".")[0]))
+        self._update_options(results)
 
     def _update_options(self, results):
         print(":: updating changes")
@@ -140,8 +176,10 @@ class Status:
         self._set_option("xfade", _get_int(results, "xfade", -1))
 
     def _update_playlist(self, results):
-        print(":: updating playlist")
-        self._set_playlist(self.mpd.playlist(), int(results["playlist"]))
+        changelist = self.mpd.plchanges(self.playlist.version)
+        real_len = int(results["playlistlength"])
+        version = int(results["playlist"])
+        self.playlist.update(changelist, version, real_len)
 
     def _update_player(self, results):
         print(":: updating player")

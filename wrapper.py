@@ -101,6 +101,12 @@ class MPDWrapper():
             return self.mpd.lsinfo(path)
         return []
 
+    def plchanges(self, version):
+        if self.connected:
+            self.noidle()
+            return self.mpd.plchanges(version)
+        return []
+
     def add(self, s):
         if self.connected:
             self.changes.add("playlist")

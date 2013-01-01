@@ -120,6 +120,8 @@ class Main(object):
                     self.state.key_event(ch, key, mod)
 
                 ev = self.termbox.peek_event()
+                if ev:
+                    self.ui.draw()
 
             ts = time_in_millis()
 

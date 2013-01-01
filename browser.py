@@ -64,6 +64,7 @@ class SongNode(BrowserNode):
     def __init__(self, mpd, data, parent):
         super(SongNode, self).__init__(mpd, parent)
         self.data = data
+        self.path = Path(data.file)
 
     def __str__(self):
         return "%s - %s (%s)" % (self.data.artist,
@@ -81,6 +82,7 @@ class PlaylistNode(BrowserNode):
     def __init__(self, mpd, data, parent):
         super(PlaylistNode, self).__init__(mpd, parent)
         self.data = data
+        self.path = Path(data)
 
     def __str__(self):
         return self.data
@@ -173,16 +175,16 @@ class Browser(List):
 
         if selnode != None:
             if selnode.is_song():
-                self.mpd.add(selnode.data.file)
+                print(self.mpd.addid(selnode.data.file))
             elif selnode.is_playlist():
-                print(selnode.data)
+                print(selnode.data)  # TODO
             else:
                 self._set_selected(selnode)
 
     def go_up(self):
-        if self.seltree:
+        if self.seltree and self.seltree.parent:
             self.seltree.select(0)  # Restore selected for current node
-        self._set_selected(self.seltree.parent)
+            self._set_selected(self.seltree.parent)
 
     def load(self):
         self.tree.load()

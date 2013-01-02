@@ -5,8 +5,22 @@ from components import *
 from wrapper import *
 
 
+ResourceTuple = namedtuple("ResourceTuple", "mpd status ui browser")
+
+
+class ResCommand(Command):
+
+    def __init__(self, res, name="unknown", description=""):
+        super(ResCommand, self).__init__(name, description)
+
+        self.mpd = res.mpd
+        self.status = res.status
+        self.ui = res.ui
+        self.browser = res.browser
+
+
 #### Playback control commands ####
-class NextCommand(Command):
+class NextCommand(ResCommand):
 
     def __init__(self, res):
         super(NextCommand, self).__init__(res, "next",
@@ -14,12 +28,12 @@ class NextCommand(Command):
 
     def execute(self, *unused_args):
         try:
-            self.res.mpd.player("next")
+            self.mpd.player("next")
         except CommandError:
             raise CommandExecutionError("Couldn't execute 'next' command")
 
 
-class PrevCommand(Command):
+class PrevCommand(ResCommand):
 
     def __init__(self, res):
         super(PrevCommand, self).__init__(res, "prev",
@@ -27,51 +41,51 @@ class PrevCommand(Command):
 
     def execute(self, *unused_args):
         try:
-            self.res.mpd.player("previous")
+            self.mpd.player("previous")
         except CommandError:
             raise CommandExecutionError("Couldn't execute 'prev' command")
 
 
-class StopCommand(Command):
+class StopCommand(ResCommand):
 
     def __init__(self, res):
         super(StopCommand, self).__init__(res, "stop", "Stop playing")
 
     def execute(self, *unused_args):
         try:
-            self.res.mpd.player("stop")
+            self.mpd.player("stop")
         except CommandError:
             raise CommandExecutionError("Couldn't execute 'stop' command")
 
 
-class PlayCommand(Command):
+class PlayCommand(ResCommand):
 
     def __init__(self, res):
         super(PlayCommand, self).__init__(res, "play", "Play song")
 
     def execute(self, *args):
         try:
-            if self.res.status.playlist.sel >= 0:
-                self.res.mpd.player("play", self.res.status.playlist.sel)
+            if self.status.playlist.sel >= 0:
+                self.mpd.player("play", self.status.playlist.sel)
         except CommandError:
             raise CommandExecutionError("Couldn't execute 'play' command")
 
 
-class ToggleCommand(Command):
+class ToggleCommand(ResCommand):
 
     def __init__(self, res):
         super(ToggleCommand, self).__init__(res, "toggle", "Play/pause")
 
     def execute(self, *unused_args):
-        s = "play" if self.res.status.state != "play" else "pause"
+        s = "play" if self.status.state != "play" else "pause"
         try:
-            self.res.mpd.player(s)
+            self.mpd.player(s)
         except CommandError:
             raise CommandExecutionError("Couldn't execute '%s' command" % s)
 
 
 #### Playback options commands ####
-class BooleanOptionCommand(Command):
+class BooleanOptionCommand(ResCommand):
 
     def __init__(self, res, cmd, name, desc):
         super(BooleanOptionCommand, self).__init__(res, name, desc)
@@ -92,13 +106,13 @@ class BooleanOptionCommand(Command):
         elif args[0] not in ("true", "false"):
             raise WrongArgException(args[0], "expected true/false")
         try:
-            self.res.mpd.option(self.cmd, 1 if args[0] == "true" else 0)
+            self.mpd.option(self.cmd, 1 if args[0] == "true" else 0)
         except CommandError:
             raise CommandExecutionError("Couldn't execute '%s' command" %
                     self.cmd)
 
 
-class IntegerOptionCommand(Command):
+class IntegerOptionCommand(ResCommand):
 
     def __init__(self, res, cmd, name, desc):
         super(IntegerOptionCommand, self).__init__(res, name, desc)
@@ -110,7 +124,7 @@ class IntegerOptionCommand(Command):
         elif not args[0].isdigit():
             raise WrongArgException(args[0], "expected an integer")
         try:
-            self.res.mpd.option(self.cmd, int(args[0]))
+            self.mpd.option(self.cmd, int(args[0]))
         except CommandError:
             raise CommandExecutionError("Couldn't execute '%s' command" %
                     self.cmd)
@@ -125,7 +139,7 @@ class CrossfadeOptionCommand(IntegerOptionCommand):
     def autocomplete(self, n, arg):
         matches = []
         if n == 0:
-            current = self.res.status.options["xfade"]
+            current = self.status.options["xfade"]
 
             if "0".startswith(arg):
                 matches.append(MatchTuple("0", "Disable crossfade"))
@@ -143,7 +157,7 @@ def boolean_option_command(res, name):
 
 
 #### Playlist commands ####
-class PlaylistClearCommand(Command):
+class PlaylistClearCommand(ResCommand):
 
     def __init__(self, res):
         super(PlaylistClearCommand, self).__init__(res, "clear",
@@ -151,12 +165,12 @@ class PlaylistClearCommand(Command):
 
     def execute(self, *args):
         try:
-            self.res.mpd.clear()
+            self.mpd.clear()
         except CommandError:
             raise CommandExecutionError("Couldn't execute 'clear' command")
 
 
-class PlaylistGoToCurrentCommand(Command):
+class PlaylistGoToCurrentCommand(ResCommand):
 
     def __init__(self, res):
         super(PlaylistGoToCurrentCommand, self).__init__(res, "current",
@@ -164,59 +178,61 @@ class PlaylistGoToCurrentCommand(Command):
 
     def execute(self, *args):
         try:
-            if self.res.status.current != None:
-                self.res.status.playlist.select(self.res.status.current.pos)
+            if self.status.current != None:
+                self.status.playlist.select(self.status.current.pos)
         except CommandError:
             raise CommandExecutionError("Couldn't execute 'clear' command")
 
 
 #### Browser commands ####
-class BrowserAddCommand(Command):
+class BrowserAddCommand(ResCommand):
 
     def __init__(self, res):
         super(BrowserAddCommand, self).__init__(res, "add",
                 "Add browser items to playlist")
 
     def execute(self, *args):
-        if isinstance(self.res.ui.main, BrowserUI):
-            selected = self.res.browser.selected()
+        if isinstance(self.ui.main, BrowserUI):
+            selected = self.browser.selected()
             if selected != None and selected.ntype in ("directory", "song"):
-                self.res.mpd.add(unicode(selected.path))
-                self.res.browser.select(1, True)
+                self.mpd.add(unicode(selected.path))
+                self.browser.select(1, True)
 
 
-class BrowserUpdateCommand(Command):
+class BrowserUpdateCommand(ResCommand):
 
     def __init__(self, res):
         super(BrowserUpdateCommand, self).__init__(res, "update",
                 "Update the currently selected directory")
 
-    def execute(self, *args):
-        pass
+    def execute(self, path=None):
+        if path == None:
+            path = self.browser.path_str("/")
+        self.mpd.update(path)
 
 
-class BrowserEnterCommand(Command):
+class BrowserEnterCommand(ResCommand):
 
     def __init__(self, res):
         super(BrowserEnterCommand, self).__init__(res, "etner",
                 "Enter directory/load file")
 
     def execute(self, *args):
-        self.res.browser.enter()
+        self.browser.enter()
 
 
-class BrowserGoUpCommand(Command):
+class BrowserGoUpCommand(ResCommand):
 
     def __init__(self, res):
         super(BrowserGoUpCommand, self).__init__(res, "go_up",
                 "Go to the parent directory")
 
     def execute(self, *unused_args):
-        self.res.browser.go_up()
+        self.browser.go_up()
 
 
 #### Application-specific commands ####
-class MainSelectCommand(Command):
+class MainSelectCommand(ResCommand):
 
     def __init__(self, res):
         super(MainSelectCommand, self).__init__(res, "", "")
@@ -228,11 +244,11 @@ class MainSelectCommand(Command):
             raise WrongArgException(args[0], "expected an integer")
         digit = int(args[0])
 
-        if self.res.ui.main and self.res.ui.main.is_list():
-            self.res.ui.main.select(digit - 1)
+        if self.ui.main and self.ui.main.is_list():
+            self.ui.main.select(digit - 1)
 
 
-class MainRelativeSelectCommand(Command):
+class MainRelativeSelectCommand(ResCommand):
 
     def __init__(self, res):
         super(MainRelativeSelectCommand, self).__init__(res, "", "")
@@ -242,11 +258,11 @@ class MainRelativeSelectCommand(Command):
             raise MissingArgException("requires one argument")
         index = int(args[0])
 
-        if self.res.ui.main and self.res.ui.main.is_list():
-            self.res.ui.main.select(index, True)
+        if self.ui.main and self.ui.main.is_list():
+            self.ui.main.select(index, True)
 
 
-class QuitCommand(Command):
+class QuitCommand(ResCommand):
 
     def __init__(self, res):
         super(QuitCommand, self).__init__(res, "quit", "Close the program")

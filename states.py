@@ -274,7 +274,9 @@ class BrowserState(State):
             "k": (MainRelativeSelectCommand(res), ("-1", )),
             "g": (MainSelectCommand(res), ("1", )),
             "G": (MainSelectCommand(res), (str(sys.maxsize), )),
-            "u": (BrowserGoUpCommand(res), ())
+            "u": (BrowserGoUpCommand(res), ()),
+            "U": (BrowserUpdateCommand(res), ())
+
         })
         self.bindings.add_key_list({
             termbox.KEY_ENTER: (BrowserEnterCommand(res), ()),

@@ -124,3 +124,8 @@ class MPDWrapper():
             self.changes.add("playlist")
             self.noidle()
             self.mpd.clear()
+
+    def update(self, path=""):
+        if self.connected:
+            self.noidle()
+            self.mpd.update(path)

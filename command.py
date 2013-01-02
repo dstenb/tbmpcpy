@@ -4,9 +4,6 @@ import re
 from common import *
 
 # Vi-like command line, with command and argument autocomplete.
-# The code is generic except for ResourceTuple
-
-ResourceTuple = namedtuple("ResourceTuple", "mpd status ui browser")
 
 
 MatchTuple = namedtuple("MatchTuple", "name description")
@@ -39,8 +36,7 @@ class CommandExecutionError(Exception):
 
 class Command(object):
 
-    def __init__(self, res, name="unknown", description="no description"):
-        self.res = res
+    def __init__(self, name="unknown", description="no description"):
         self.name = name
         self.description = description
 

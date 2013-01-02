@@ -204,7 +204,7 @@ class BrowserBar(Component, ListListener):
     def draw(self):
         f = Format()
         f.add(" Browse > ", termbox.WHITE | termbox.BOLD, termbox.BLACK)
-        f.add(" > ".join(self.browser.seltree.path.list),
+        f.add(self.browser.path_str(" > "),
                 termbox.WHITE, termbox.BLACK)
         self.change_cells_format(0, 0, f)
 

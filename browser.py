@@ -115,6 +115,13 @@ class DirectoryNode(BrowserNode):
             traceback.print_exc()
             raise
 
+        # Add links to root and previous directory
+        if self.parent != None:
+            c = LinkNode(self.mpd, None, self, "/")
+            children.insert(0, c)
+            c = LinkNode(self.mpd, self.parent, self, "../")
+            children.insert(1, c)
+
         self.children = children
         if len(self.children) > 0:
             self.sel = 0
@@ -136,21 +143,35 @@ class DirectoryNode(BrowserNode):
         return None
 
 
+class LinkNode(object):
+
+    def __init__(self, mpd, link, parent, name=None):
+        self.mpd = mpd
+        self.parent = parent
+        self.link = link
+        self.ntype = "link"
+        self.name = name if "name" != None else link.path.name()
+
+    def __str__(self):
+        return self.name
+
+
 class Browser(List):
 
     def __init__(self, mpd):
         super(Browser, self).__init__([])
         self.mpd = mpd
         self.tree = DirectoryNode(mpd, Path(), None)
+        self.curr_node = None
 
     def _set_selected(self, node):
         if node:
-            self.seltree = node
-            self.sel = self.seltree.sel
-            self.set_list(self.seltree.children)
+            self.curr_node = node
+            self.sel = self.curr_node.sel
+            self.set_list(self.curr_node.children)
 
     def enter(self):
-        selnode = self.seltree.selected()
+        selnode = self.curr_node.selected()
 
         if selnode != None:
             if selnode.ntype == "song":
@@ -159,16 +180,26 @@ class Browser(List):
                 print(selnode.data)  # TODO
             elif selnode.ntype == "directory":
                 self._set_selected(selnode)
+            elif selnode.ntype == "link":
+                self.curr_node.select(0)
+                self._set_selected(selnode.link if selnode.link != None
+                        else self.tree)
 
     def go_up(self):
-        if self.seltree and self.seltree.parent:
-            self.seltree.select(0)  # Restore selected for current node
-            self._set_selected(self.seltree.parent)
+        if self.curr_node and self.curr_node.parent:
+            self.curr_node.select(0)  # Restore selected for current node
+            self._set_selected(self.curr_node.parent)
 
     def load(self):
         self.tree.load()
         self._set_selected(self.tree)
 
+    def path_str(self, delim="/"):
+        if self.curr_node != None:
+            return delim.join(self.curr_node.path.list)
+        return ""
+
     def select(self, index, rel=False):
-        self.sel = self.seltree.select(index, rel)
-        self._notify_selected()
+        if self.curr_node != None:
+            self.sel = self.curr_node.select(index, rel)
+            self._notify_selected()

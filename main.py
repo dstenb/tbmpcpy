@@ -108,6 +108,8 @@ class Main(object):
                 retry_conn = False
                 self.connect()
                 self.auth()
+                self.browser.load()
+                self.status.init()
 
             # Handle termbox events
             ev = self.termbox.peek_event(1000)
@@ -140,6 +142,8 @@ class Main(object):
                 self.mpd.noidle()
                 changes = self.mpd.get_changes()
                 if "database" in changes:
+                    self.browser.load()
+                    self.msg.info("Database updated!", 4)
                     pass  # TODO: update database
                 if "stored_playlist" in changes:
                     pass  # TODO: update stored playlists

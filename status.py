@@ -5,7 +5,7 @@ from wrapper import *
 import traceback
 
 
-class Song():
+class Song(object):
 
     def __init__(self, d):
         self.artist = d.get("artist", "unknown")
@@ -28,6 +28,11 @@ class Playlist(List):
     def _append(self, new):
         self.items += new
 
+    def _calc_playtime(self):
+        self.playtime = 0
+        for v in self.items:
+            self.playtime += v.time
+
     def _cut(self, pos):
         self.items = self.items[:pos]
 
@@ -40,9 +45,7 @@ class Playlist(List):
     def set_list(self, items, version):
         self.items = items
         self.version = version
-        self.playtime = 0
-        for v in self.items:
-            self.playtime += v.time
+        self._calc_playtime()
         self._fix_sel()
         self._notify()
 
@@ -55,6 +58,7 @@ class Playlist(List):
             self._cut(new[0].pos)
             self._append(new)
 
+        # Detect songs removed from the back of the list
         if real_len < len(self):
             self._cut(real_len - len(self))
         self.set_list(self.items, version)
@@ -71,15 +75,6 @@ class Progress(object):
         if self.total_time > 0:
             return (self.elapsed_time / float(self.total_time))
         return -1
-
-    def set_elapsed(self, t):
-        self.elapsed_time = t
-
-    def set_time(self, t):
-        self.total_time = t
-
-    def set_last(self, ts):
-        self.last = ts
 
     def update(self, ts):
         self.elapsed_time += (ts - self.last) / 1000.0
@@ -129,13 +124,13 @@ class Status:
             self.current = self.playlist[pos] if pos >= 0 else None
         except:
             self.current = None
-        self.progress.set_time(self.current.time if self.current else 0)
+        self.progress.total_time = self.current.time if self.current else 0
 
         for o in self.listeners:
             o.current_changed()
 
     def _set_elapsed(self, t):
-        self.progress.set_elapsed(t)
+        self.progress.elapsed_time = t
 
     def _set_option(self, opt, b):
         if self.options[opt] != b:
@@ -168,7 +163,6 @@ class Status:
         self._update_options(results)
 
     def _update_options(self, results):
-        print(":: updating changes")
         self._set_option("consume", _get_bool(results, "consume"))
         self._set_option("random", _get_bool(results, "random"))
         self._set_option("repeat", _get_bool(results, "repeat"))
@@ -182,8 +176,6 @@ class Status:
         self.playlist.update(changelist, version, real_len)
 
     def _update_player(self, results):
-        print(":: updating player")
-
         # Update state
         self._set_state(results.get("state", "unknown"))
 

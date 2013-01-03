@@ -32,26 +32,29 @@ class UI(VerticalLayout):
             setattr(self, name, o)
             return o
 
-        self.add_top(create("browser_bar", BrowserBar, True, termbox, browser))
-        self.add_top(create("playlist_bar", PlaylistBar, True, termbox,
-            status.playlist))
+        top = [["browser_bar", BrowserBar, True, termbox, browser],
+                ["playlist_bar", PlaylistBar, True, termbox, status.playlist]]
 
-        self.add_bottom(create("current_song", CurrentSongUI, True, termbox,
-            status))
-        self.add_bottom(create("progress_bar", ProgressBarUI, True, termbox,
-            status))
-        self.add_bottom(create("message", MessageUI, False, termbox, msg))
-        self.add_bottom(create("command", CommandLineUI, False, termbox, None))
+        main = [["playlist", PlaylistUI, False, termbox, status],
+                ["browser", BrowserUI, False, termbox, browser]]
 
-        create("playlist", PlaylistUI, False, termbox, status)
-        create("browser", BrowserUI, False, termbox, browser)
+        bottom = [["current_song", CurrentSongUI, True, termbox, status],
+                ["progress_bar", ProgressBarUI, True, termbox, status],
+                ["message", MessageUI, False, termbox, msg],
+                ["command", CommandLineUI, False, termbox, None]]
+
+        for v in top:
+            self.add_top(create(*v))
+
+        for v in main:
+            create(*v)
+
+        for v in bottom:
+            self.add_bottom(create(*v))
 
     def show_top(self, o):
         for oc in self.top:
-            if oc is o:
-                oc.show()
-            else:
-                oc.hide()
+            oc.show() if (oc is o) else oc.hide()
 
 
 class Main(object):
@@ -131,7 +134,7 @@ class Main(object):
             if self.status.is_playing():
                 self.status.progress.update(ts)
             else:
-                self.status.progress.set_last(ts)
+                self.status.progress.last = ts
 
             # Update message timer
             self.msg.update(ts)

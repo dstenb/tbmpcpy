@@ -205,10 +205,11 @@ class BrowserUpdateCommand(ResCommand):
         super(BrowserUpdateCommand, self).__init__(res, "update",
                 "Update the currently selected directory")
 
-    def execute(self, path=None):
-        if path == None:
-            path = self.browser.path_str("/")
-        self.mpd.update(path)
+    def execute(self, *args):
+        if len(args) == 0:
+            self.mpd.update(self.browser.path_str("/"))
+        else:
+            self.mpd.update()
 
 
 class BrowserEnterCommand(ResCommand):

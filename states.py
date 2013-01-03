@@ -196,7 +196,8 @@ class CommandState(State):
                 "random": boolean_option_command(res, "random"),
                 "repeat": boolean_option_command(res, "repeat"),
                 "single": boolean_option_command(res, "single"),
-                "stop": StopCommand(res)
+                "stop": StopCommand(res),
+                "update": BrowserUpdateCommand(res)
         }
 
         number_command = MainSelectCommand(res)

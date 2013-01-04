@@ -125,6 +125,13 @@ class MPDWrapper():
             self.noidle()
             self.mpd.clear()
 
+    def delete(self, *pos):
+        if self.connected:
+            self.changes.add("playlist")
+            self.noidle()
+            for p in pos:
+                self.mpd.delete(p)
+
     def update(self, path=""):
         if self.connected:
             self.noidle()

@@ -128,6 +128,7 @@ class PlaylistState(State):
             "g": (MainSelectCommand(res), ("1", )),
             "G": (MainSelectCommand(res), (str(sys.maxsize), )),
             "C": (PlaylistClearCommand(res), ()),
+            "d": (PlaylistDeleteCommand(res), ()),
             "f": (PlaylistGoToCurrentCommand(res), ())
         })
         self.bindings.add_key_list({

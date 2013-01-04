@@ -170,6 +170,21 @@ class PlaylistClearCommand(ResCommand):
             raise CommandExecutionError("Couldn't execute 'clear' command")
 
 
+class PlaylistDeleteCommand(ResCommand):
+
+    def __init__(self, res):
+        super(PlaylistDeleteCommand, self).__init__(res, "delete",
+                "Delete song from playlist")
+
+    def execute(self, *args):
+        try:
+            if self.status.playlist.sel >= 0:
+                self.mpd.delete(self.status.playlist.sel)
+        except CommandError:
+            traceback.print_exc()
+            raise CommandExecutionError("Couldn't execute 'delete' command")
+
+
 class PlaylistGoToCurrentCommand(ResCommand):
 
     def __init__(self, res):

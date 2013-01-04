@@ -32,11 +32,11 @@ class Path(object):
 
 class BrowserNode(object):
 
-    def __init__(self, mpd, parent):
+    def __init__(self, mpd, parent, ntype):
         self.mpd = mpd
         self.parent = parent
+        self.ntype = ntype
         self.sel = -1
-        self.ntype = ""
 
     def __len__(self):
         return 0
@@ -54,10 +54,9 @@ class BrowserNode(object):
 class SongNode(BrowserNode):
 
     def __init__(self, mpd, data, parent):
-        super(SongNode, self).__init__(mpd, parent)
+        super(SongNode, self).__init__(mpd, parent, "song")
         self.data = data
         self.path = Path(data.file)
-        self.ntype = "song"
 
     def __str__(self):
         return "%s - %s (%s)" % (self.data.artist,
@@ -67,10 +66,9 @@ class SongNode(BrowserNode):
 class PlaylistNode(BrowserNode):
 
     def __init__(self, mpd, data, parent):
-        super(PlaylistNode, self).__init__(mpd, parent)
+        super(PlaylistNode, self).__init__(mpd, parent, "playlist")
         self.data = data
         self.path = Path(data)
-        self.ntype = "playlist"
 
     def __str__(self):
         return self.data
@@ -79,10 +77,9 @@ class PlaylistNode(BrowserNode):
 class DirectoryNode(BrowserNode):
 
     def __init__(self, mpd, path, parent):
-        super(DirectoryNode, self).__init__(mpd, parent)
+        super(DirectoryNode, self).__init__(mpd, parent, "directory")
         self.children = []
         self.path = path
-        self.ntype = "directory"
 
     def __len__(self):
         return len(self.children)
@@ -117,10 +114,8 @@ class DirectoryNode(BrowserNode):
 
         # Add links to root and previous directory
         if self.parent != None:
-            c = LinkNode(self.mpd, None, self, "/")
-            children.insert(0, c)
-            c = LinkNode(self.mpd, self.parent, self, "../")
-            children.insert(1, c)
+            children.insert(0, LinkNode(self.mpd, None, self, "/"))
+            children.insert(1, LinkNode(self.mpd, self.parent, self, "../"))
 
         self.children = children
         if len(self.children) > 0:
@@ -143,13 +138,11 @@ class DirectoryNode(BrowserNode):
         return None
 
 
-class LinkNode(object):
+class LinkNode(BrowserNode):
 
     def __init__(self, mpd, link, parent, name=None):
-        self.mpd = mpd
-        self.parent = parent
+        super(LinkNode, self).__init__(mpd, parent, "link")
         self.link = link
-        self.ntype = "link"
         self.name = name if "name" != None else link.path.name()
 
     def __str__(self):

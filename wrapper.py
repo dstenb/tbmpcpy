@@ -72,11 +72,6 @@ class MPDWrapper():
                 self.mpd.send_noidle()
             self.changes.add(*self.mpd.fetch_idle())
 
-    def playlist(self):
-        if self.connected:
-            return self.mpd.playlistinfo()
-        return None
-
     def player(self, cmd, *args):
         if self.connected:
             self.changes.add("player")
@@ -107,30 +102,32 @@ class MPDWrapper():
             return self.mpd.plchanges(version)
         return []
 
-    def add(self, s):
+    def add(self, path):
         if self.connected:
             self.changes.add("playlist")
             self.noidle()
-            self.mpd.add(s)
+            self.mpd.add(path)
 
-    def add_and_play(self, s):
+    def add_and_play(self, path):
         if self.connected:
             self.changes.add("playlist", "player")
             self.noidle()
-            self.mpd.playid(self.mpd.addid(s))
+            self.mpd.playid(self.mpd.addid(path))
 
     def clear(self):
         if self.connected:
-            self.changes.add("playlist")
+            self.changes.add("playlist", "player")
             self.noidle()
             self.mpd.clear()
 
-    def delete(self, *pos):
+    def delete(self, *poslist):
         if self.connected:
-            self.changes.add("playlist")
+            self.changes.add("playlist", "player")
             self.noidle()
-            for p in pos:
+            self.mpd.command_list_ok_begin()
+            for p in poslist:
                 self.mpd.delete(p)
+            self.mpd.command_list_end()
 
     def update(self, path=""):
         if self.connected:

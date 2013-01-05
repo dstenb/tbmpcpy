@@ -156,7 +156,7 @@ class Status:
         if not results:
             self.msg.error("Couldn't retrieve MPD status", 1)
             return
-        self._set_playlist(self.mpd.playlist(), int(results["playlist"]))
+        self._set_playlist(self.mpd.plchanges(0), int(results["playlist"]))
         self._set_state(results.get("state", "unknown"))
         self._set_current(int(results.get("song", -1)))
         self._set_elapsed(int(results.get("elapsed", "0").split(".")[0]))

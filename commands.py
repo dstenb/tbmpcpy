@@ -92,13 +92,8 @@ class BooleanOptionCommand(ResCommand):
         self.cmd = cmd
 
     def autocomplete(self, n, arg):
-        matches = []
-        if n == 0:
-            if "true".startswith(arg):
-                matches.append(MatchTuple("true", None))
-            if "false".startswith(arg):
-                matches.append(MatchTuple("false", None))
-        return matches
+        return [MatchTuple(s, None) for s in ["false", "true"]
+                if (n == 0 and s.startswith(arg))]
 
     def execute(self, *args):
         if len(args) == 0:
@@ -258,10 +253,9 @@ class MainSelectCommand(ResCommand):
             raise MissingArgException("requires one argument")
         elif not args[0].isdigit():
             raise WrongArgException(args[0], "expected an integer")
-        digit = int(args[0])
 
         if self.ui.main and self.ui.main.is_list():
-            self.ui.main.select(digit - 1)
+            self.ui.main.select(int(args[0]) - 1)
 
 
 class MainRelativeSelectCommand(ResCommand):
@@ -272,10 +266,9 @@ class MainRelativeSelectCommand(ResCommand):
     def execute(self, *args):
         if len(args) == 0:
             raise MissingArgException("requires one argument")
-        index = int(args[0])
 
         if self.ui.main and self.ui.main.is_list():
-            self.ui.main.select(index, True)
+            self.ui.main.select(int(args[0]), True)
 
 
 class QuitCommand(ResCommand):
@@ -283,5 +276,5 @@ class QuitCommand(ResCommand):
     def __init__(self, res):
         super(QuitCommand, self).__init__(res, "quit", "Close the program")
 
-    def execute(self, *args):
-        sys.exit(args[0] if len(args) > 0 else 0)
+    def execute(self, *unused_args):
+        sys.exit()

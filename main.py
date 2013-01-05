@@ -124,6 +124,8 @@ class Main(object):
                 elif etype == termbox.EVENT_KEY:
                     self.state.key_event(ch, key, mod)
 
+                if self.mpd.has_changes():
+                    break
                 ev = self.termbox.peek_event()
                 if ev:
                     self.ui.draw()

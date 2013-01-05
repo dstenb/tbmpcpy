@@ -222,21 +222,18 @@ class VerticalLayout(Component, ComponentListener):
         self.fix()
 
     def dim_changed(self, o):
-        print ("%s: dim_changed: %i %i %i %i" % (str(o), o.x, o.y, o.w, o.h))
         if not (o in self.top or o in self.bottom or o == self.main):
             print("unknown " + str(o))
             sys.exit(0)
         self.fix()
 
     def preferred_dim_changed(self, o):
-        print ("%s: preferred_dim_changed: %i %i" % (str(o), o.prefw, o.prefh))
         if not (o in self.top or o in self.bottom or o == self.main):
             print("unknown " + str(o))
             sys.exit(0)
         self.fix()
 
     def visibility_changed(self, o):
-        print ("%s: visibility_changed: %r" % (str(o), o.visible))
         if not (o in self.top or o in self.bottom or o == self.main):
             print("unknown " + str(o))
             sys.exit(0)

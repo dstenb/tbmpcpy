@@ -5,36 +5,18 @@ from wrapper import *
 import traceback
 
 
-class Song(object):
-
-    def __init__(self, d):
-        self.artist = d.get("artist", "unknown")
-        self.album = d.get("album", "unknown")
-        self.title = d.get("title", "unknown")
-        self.file = d.get("file", "")
-        self.genre = d.get("genre", "unknown")
-        self.time = int(d.get("time", 0))
-        self.pos = int(d.get("pos", 0))
-        self.songid = int(d.get("id", -1))
-
-
 class Playlist(List):
 
-    def __init__(self):
+    def __init__(self, mpd):
         super(Playlist, self).__init__()
+        self.mpd = mpd
         self.version = 0
         self.playtime = 0
-
-    def _append(self, new):
-        self.items += new
 
     def _calc_playtime(self):
         self.playtime = 0
         for v in self.items:
             self.playtime += v.time
-
-    def _cut(self, pos):
-        self.items = self.items[:pos]
 
     def init(self, _songs, version):
         songs = []
@@ -50,17 +32,24 @@ class Playlist(List):
         self._notify()
 
     def update(self, changelist, version, real_len):
-        new = []
+        lookup = {}
 
-        for d in changelist:
-            new.append(Song(d))
-        if len(new) > 0:
-            self._cut(new[0].pos)
-            self._append(new)
+        for s in self.items:
+            lookup[s.songid] = s
+
+        if len(changelist) > 0:
+            del self.items[int(changelist[0]["cpos"]):]
+
+        for s in changelist:
+            sid = int(s["id"])
+            if sid in lookup:
+                self.items.append(lookup[sid])
+            else:
+                self.items.append(self.mpd.playlist_song(sid))
 
         # Detect songs removed from the back of the list
         if real_len < len(self):
-            self._cut(real_len - len(self))
+            del self.items[(real_len - len(self)):]
         self.set_list(self.items, version)
 
 
@@ -75,6 +64,7 @@ class Progress(object):
         if self.total_time > 0:
             return (self.elapsed_time / float(self.total_time))
         return -1
+
 
     def update(self, ts):
         self.elapsed_time += (ts - self.last) / 1000.0
@@ -106,7 +96,7 @@ class Status:
     def __init__(self, mpd, msg):
         self.mpd = mpd
         self.msg = msg
-        self.playlist = Playlist()
+        self.playlist = Playlist(mpd)
         self.progress = Progress()
         self.options = {
                 "consume": False,
@@ -170,7 +160,7 @@ class Status:
         self._set_option("xfade", _get_int(results, "xfade", -1))
 
     def _update_playlist(self, results):
-        changelist = self.mpd.plchanges(self.playlist.version)
+        changelist = self.mpd.plchangesposid(self.playlist.version)
         real_len = int(results["playlistlength"])
         version = int(results["playlist"])
         self.playlist.update(changelist, version, real_len)

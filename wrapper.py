@@ -1,3 +1,5 @@
+import re
+
 from mpd import (MPDClient, CommandError)
 from socket import error as SocketError
 
@@ -16,6 +18,25 @@ class Changes:
         c = self.changes
         self.changes = []
         return c
+
+
+class Song(object):
+
+    def __init__(self, d):
+        self.artist = d.get("artist", "unknown")
+        self.album = d.get("album", "unknown")
+        self.file = d.get("file", "")
+        self.title = d.get("title", self.file.split("/")[-1])
+        self.genre = d.get("genre", "unknown")
+        self.time = int(d.get("time", 0))
+        self.pos = int(d.get("pos", 0))
+        self.songid = int(d.get("id", -1))
+
+    def matches(self, r):
+        if (r.search(self.artist) or r.search(self.title)
+                or r.search(self.album)):
+            return True
+        return False
 
 
 class MPDWrapper():
@@ -102,6 +123,12 @@ class MPDWrapper():
             return self.mpd.plchanges(version)
         return []
 
+    def plchangesposid(self, version):
+        if self.connected:
+            self.noidle()
+            return self.mpd.plchangesposid(version)
+        return []
+
     def add(self, path):
         if self.connected:
             self.changes.add("playlist")
@@ -133,3 +160,6 @@ class MPDWrapper():
         if self.connected:
             self.noidle()
             self.mpd.update(path)
+
+    def playlist_song(self, songid):
+        return Song(self.mpd.playlistid(songid)[0])

@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+import re
 import traceback
 
 from list import List
@@ -195,4 +196,4 @@ class Browser(List):
     def select(self, index, rel=False):
         if self.curr_node != None:
             self.sel = self.curr_node.select(index, rel)
-            self._notify_selected()
+            self.notify("list_selected_changed", self)

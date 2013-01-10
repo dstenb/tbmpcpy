@@ -1,11 +1,15 @@
-class List(object):
+from common import Listenable
 
-    def __init__(self, items=[], listeners=[]):
+
+class List(Listenable):
+
+    def __init__(self, items=[]):
+        super(List, self).__init__()
         self.items = items
         self.real_items = items
-        self.listeners = listeners
         self.sel = -1
         self.search_mode = False
+        self.search_string = ""
 
     def __getitem__(self, index):
         return self.items[index]
@@ -22,25 +26,6 @@ class List(object):
     def _handle_set(self):
         pass
 
-    def _notify(self):
-        for o in self.listeners:
-            o.list_changed(self)
-
-    def _notify_search_started(self):
-        for o in self.listeners:
-            o.list_search_started(self)
-
-    def _notify_search_stopped(self):
-        for o in self.listeners:
-            o.list_search_stopped(self)
-
-    def _notify_selected(self):
-        for o in self.listeners:
-            o.list_selected_changed(self)
-
-    def add_listener(self, o):
-        self.listeners.append(o)
-
     def _search(self):
         pass
 
@@ -48,12 +33,12 @@ class List(object):
         self.search_mode = True
         self.search_string = s
         self.set_list(self.real_items)
-        self._notify_search_started()
+        self.notify("list_search_started", self)
 
     def _search_stop(self):
         self.search_mode = False
         self.set_list(self.real_items)
-        self._notify_search_stopped()
+        self.notify("list_search_stopped", self)
 
     def search(self, s):
         if s == None:
@@ -70,7 +55,7 @@ class List(object):
             self.items = self.real_items
         self._fix_sel()
         self._handle_set()
-        self._notify()
+        self.notify("list_changed", self)
 
     def select(self, index, rel=False):
         if rel:
@@ -78,7 +63,7 @@ class List(object):
         else:
             self.sel = index
         self._fix_sel()
-        self._notify_selected()
+        self.notify("list_selected_changed", self)
 
     def selected(self):
         if self.sel >= 0:

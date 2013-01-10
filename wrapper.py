@@ -29,11 +29,11 @@ class Song(object):
         self.title = d.get("title", self.file.split("/")[-1])
         self.genre = d.get("genre", "unknown")
         self.time = int(d.get("time", 0))
-        self.pos = int(d.get("pos", 0))
+        self.pos = int(d.get("pos", -1))
         self.songid = int(d.get("id", -1))
 
     def __eq__(self, o):
-        return self.songid == o.songid
+        return self.songid == o.songid if o else False
 
     def __ne__(self, o):
         return not self == o

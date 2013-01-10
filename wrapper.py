@@ -32,6 +32,12 @@ class Song(object):
         self.pos = int(d.get("pos", 0))
         self.songid = int(d.get("id", -1))
 
+    def __eq__(self, o):
+        return self.songid == o.songid
+
+    def __ne__(self, o):
+        return not self == o
+
     def matches(self, r):
         if (r.search(self.artist) or r.search(self.title)
                 or r.search(self.album)):

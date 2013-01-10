@@ -1,3 +1,5 @@
+import re
+
 from browser import *
 from common import *
 from list import *
@@ -13,44 +15,53 @@ class Playlist(List):
         self.version = 0
         self.playtime = 0
 
-    def _calc_playtime(self):
-        self.playtime = 0
-        for v in self.items:
-            self.playtime += v.time
-
     def init(self, _songs, version):
         songs = []
         for d in _songs:
             songs.append(Song(d))
-        self.set_list(songs, version)
-
-    def set_list(self, items, version):
-        self.items = items
         self.version = version
-        self._calc_playtime()
-        self._fix_sel()
-        self._notify()
+        self.set_list(songs)
+
+    def _handle_set(self):
+        self.playtime = 0
+        for v in self.items:
+            self.playtime += v.time
 
     def update(self, changelist, version, real_len):
         lookup = {}
 
-        for s in self.items:
+        for s in self.real_items:
             lookup[s.songid] = s
 
         if len(changelist) > 0:
-            del self.items[int(changelist[0]["cpos"]):]
+            del self.real_items[int(changelist[0]["cpos"]):]
 
         for s in changelist:
             sid = int(s["id"])
             if sid in lookup:
-                self.items.append(lookup[sid])
+                song = lookup[sid]
+                song.pos = int(s["cpos"])  # Update song pos to correct one
+                self.real_items.append(song)
             else:
-                self.items.append(self.mpd.playlist_song(sid))
+                self.real_items.append(self.mpd.playlist_song(sid))
 
         # Detect songs removed from the back of the list
         if real_len < len(self):
-            del self.items[(real_len - len(self)):]
-        self.set_list(self.items, version)
+            del self.real_items[(real_len - len(self)):]
+        self.version = version
+        self.set_list(self.real_items)
+
+    def _search(self):
+        items = []
+        regex = re.compile(self.search_string, re.IGNORECASE)
+
+        print(self.real_items)
+
+        for v in self.real_items:
+            print(v.matches(regex))
+            if v.matches(regex):
+                items.append(v)
+        return items
 
 
 class Progress(object):
@@ -110,10 +121,7 @@ class Status:
         self.listeners = []
 
     def _set_current(self, pos):
-        try:
-            self.current = self.playlist[pos] if pos >= 0 else None
-        except:
-            self.current = None
+        self.current = self.mpd.current_song()
         self.progress.total_time = self.current.time if self.current else 0
 
         for o in self.listeners:

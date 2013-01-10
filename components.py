@@ -30,20 +30,8 @@ class MainComponent(Component):
             return self.list.selected()
         return None
 
-    def search_start(self, d):
-        if self.is_list():
-            return self._search_start(d)
-        return None  # TODO raise exception for debugging
-
-    def search_next(self):
-        if self.is_list():
-            return self._search_next()
-        return None  # TODO raise exception for debugging
-
-    def search_prev(self):
-        if self.is_list():
-            return self._search_prev()
-        return None  # TODO raise exception for debugging
+    def search(self, s):
+        pass
 
 
 class ProgressBarUI(Component, StatusListener):
@@ -135,6 +123,9 @@ class ListUI(MainComponent, ListListener):
     def list_selected_changed(self, l):
         self._fix_bounds()
 
+    def search(self, s):
+        self.list.search(s)
+
 
 def length_str(time):
     m = time / 60
@@ -178,7 +169,7 @@ class PlaylistUI(ListUI, StatusListener):
             right.set_color(*color_playlist_selected)
             left.add("".ljust(max(0, self.w - len(left.s))),
                     *color_playlist_selected)
-        if song is self.status.current:
+        if song == self.status.current:
             left.set_bold()
             right.set_bold()
             left.replace(0, ">", termbox.BLUE, termbox.BLACK)
@@ -192,6 +183,12 @@ class PlaylistUI(ListUI, StatusListener):
                 left, right = self._format(self.list[pos], y, pos)
                 self.change_cells_format(0, y, left)
                 self.change_cells_format(self.w - len(right.s), y, right)
+
+    def list_search_started(self, unused_ref):
+        pass
+
+    def list_search_stopped(self, unused_ref):
+        pass
 
 
 class BrowserBar(Component, ListListener):
@@ -216,11 +213,20 @@ class PlaylistBar(Component, ListListener):
         self.playlist = playlist
         self.playlist.add_listener(self)
         self.len_str = ""
+        self.search_active = False
+        self.search_string = ""
 
     def draw(self):
         f = Format()
         f.add(" Playlist ", termbox.WHITE | termbox.BOLD, termbox.BLACK)
-        f.add(self.len_str, termbox.WHITE, termbox.BLACK)
+        if self.search_active:
+            f.add("Filter: ", termbox.WHITE, termbox.BLACK)
+            if len(self.playlist) > 0:
+                f.add(self.search_string, termbox.WHITE, termbox.BLACK)
+            else:
+                f.add(self.search_string, termbox.RED, termbox.BLACK)
+        else:
+            f.add(self.len_str, termbox.WHITE, termbox.BLACK)
         self.change_cells_format(0, 0, f)
 
     def list_changed(self, unused_list):
@@ -229,6 +235,13 @@ class PlaylistBar(Component, ListListener):
             self.len_str += ", %s)" % playtime_str(self.playlist.playtime)
         else:
             self.len_str += ")"
+
+    def list_search_started(self, unused_list):
+        self.search_active = True
+        self.search_string = self.playlist.search_string
+
+    def list_search_stopped(self, unused_list):
+        self.search_active = False
 
 
 class BrowserUI(ListUI, ListListener):

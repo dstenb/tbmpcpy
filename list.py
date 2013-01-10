@@ -2,8 +2,10 @@ class List(object):
 
     def __init__(self, items=[], listeners=[]):
         self.items = items
+        self.real_items = items
         self.listeners = listeners
         self.sel = -1
+        self.search_mode = False
 
     def __getitem__(self, index):
         return self.items[index]
@@ -17,9 +19,20 @@ class List(object):
         else:
             self.sel = -1
 
+    def _handle_set(self):
+        pass
+
     def _notify(self):
         for o in self.listeners:
             o.list_changed(self)
+
+    def _notify_search_started(self):
+        for o in self.listeners:
+            o.list_search_started(self)
+
+    def _notify_search_stopped(self):
+        for o in self.listeners:
+            o.list_search_stopped(self)
 
     def _notify_selected(self):
         for o in self.listeners:
@@ -28,9 +41,35 @@ class List(object):
     def add_listener(self, o):
         self.listeners.append(o)
 
+    def _search(self):
+        pass
+
+    def _search_start(self, s):
+        self.search_mode = True
+        self.search_string = s
+        self.set_list(self.real_items)
+        self._notify_search_started()
+
+    def _search_stop(self):
+        self.search_mode = False
+        self.set_list(self.real_items)
+        self._notify_search_stopped()
+
+    def search(self, s):
+        if s == None:
+            self._search_stop()
+        else:
+            self._search_start(s)
+
     def set_list(self, items):
-        self.items = items
+        self.real_items = items
+
+        if self.search_mode:
+            self.items = self._search()
+        else:
+            self.items = self.real_items
         self._fix_sel()
+        self._handle_set()
         self._notify()
 
     def select(self, index, rel=False):
@@ -46,9 +85,6 @@ class List(object):
             return self.items[self.sel]
         return None
 
-    def selected_index(self):
-        return self.sel
-
 
 class ListListener(object):
 
@@ -56,4 +92,10 @@ class ListListener(object):
         pass
 
     def list_selected_changed(self, o):
+        pass
+
+    def list_search_started(self, o):
+        pass
+
+    def list_search_stopped(self, o):
         pass

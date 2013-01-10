@@ -129,7 +129,8 @@ class PlaylistState(State):
             "G": (MainSelectCommand(res), (str(sys.maxsize), )),
             "C": (PlaylistClearCommand(res), ()),
             "d": (PlaylistDeleteCommand(res), ()),
-            "f": (PlaylistGoToCurrentCommand(res), ())
+            "f": (EnterCommand(self), ("search ", True)),
+            "F": (MainSearchCommand(res), ())
         })
         self.bindings.add_key_list({
             termbox.KEY_ENTER: (PlayCommand(res), ()),
@@ -194,6 +195,7 @@ class CommandState(State):
                 "previous": PrevCommand(res),
                 "q": QuitCommand(res),
                 "quit": QuitCommand(res),
+                "search": MainSearchCommand(res),
                 "random": boolean_option_command(res, "random"),
                 "repeat": boolean_option_command(res, "repeat"),
                 "single": boolean_option_command(res, "single"),

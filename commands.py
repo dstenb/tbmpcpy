@@ -65,8 +65,9 @@ class PlayCommand(ResCommand):
 
     def execute(self, *args):
         try:
-            if self.status.playlist.sel >= 0:
-                self.mpd.player("play", self.status.playlist.sel)
+            selected = self.status.playlist.selected()
+            if selected:
+                self.mpd.player("play", selected.pos)
         except CommandError:
             raise CommandExecutionError("Couldn't execute 'play' command")
 
@@ -173,8 +174,9 @@ class PlaylistDeleteCommand(ResCommand):
 
     def execute(self, *args):
         try:
-            if self.status.playlist.sel >= 0:
-                self.mpd.delete(self.status.playlist.sel)
+            selected = self.status.playlist.selected()
+            if selected:
+                self.mpd.delete(selected.pos)
         except CommandError:
             traceback.print_exc()
             raise CommandExecutionError("Couldn't execute 'delete' command")
@@ -243,6 +245,21 @@ class BrowserGoUpCommand(ResCommand):
 
 
 #### Application-specific commands ####
+class MainSearchCommand(ResCommand):
+
+    def __init__(self, res):
+        super(MainSearchCommand, self).__init__(res, "search",
+                "Search (filter) items")
+
+    def execute(self, *args):
+        s = None
+        if len(args) > 0:
+            s = args[0]
+
+        if self.ui.main and self.ui.main.is_list():
+            self.ui.main.search(s)
+
+
 class MainSelectCommand(ResCommand):
 
     def __init__(self, res):

@@ -86,7 +86,6 @@ class MPDWrapper():
         return self.in_idle
 
     def noidle(self, block=False):
-        changes = []
         if self.connected and self.in_idle:
             self.in_idle = False
             if not block:
@@ -106,28 +105,16 @@ class MPDWrapper():
             getattr(self.mpd, cmd)(*args)
 
     def status(self):
-        if self.connected:
-            self.noidle()
-            return self.mpd.status()
-        return None
+        return self.mpd.status() if self.connected else None
 
     def ls(self, path):
-        if self.connected:
-            self.noidle()
-            return self.mpd.lsinfo(path)
-        return []
+        return self.mpd.lsinfo(path) if self.connected else []
 
     def plchanges(self, version):
-        if self.connected:
-            self.noidle()
-            return self.mpd.plchanges(version)
-        return []
+        return self.mpd.plchanges(version) if self.connected else []
 
     def plchangesposid(self, version):
-        if self.connected:
-            self.noidle()
-            return self.mpd.plchangesposid(version)
-        return []
+        return self.mpd.plchangesposid(version) if self.connected else []
 
     def add(self, path):
         if self.connected:

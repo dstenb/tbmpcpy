@@ -38,19 +38,6 @@ class BrowserNode(object):
         self.mpd = mpd
         self.parent = parent
         self.ntype = ntype
-        self.sel = -1
-
-    def __len__(self):
-        return 0
-
-    def load(self):
-        pass
-
-    def select(self, index, rel=False):
-        pass
-
-    def selected(self):
-        pass
 
 
 class SongNode(BrowserNode):
@@ -76,12 +63,14 @@ class PlaylistNode(BrowserNode):
         return self.data
 
 
-class DirectoryNode(BrowserNode):
+class InternalNode(BrowserNode):
 
-    def __init__(self, mpd, path, parent):
-        super(DirectoryNode, self).__init__(mpd, parent, "directory")
+    def __init__(self, mpd, parent, ntype):
+        self.mpd = mpd
+        self.parent = parent
+        self.ntype = ntype
         self.children = []
-        self.path = path
+        self.sel = -1
 
     def __getitem__(self, index):
         return self.children[index]
@@ -89,16 +78,35 @@ class DirectoryNode(BrowserNode):
     def __len__(self):
         return len(self.children)
 
-    def __str__(self):
-        return self.path.name() + "/"
+    def select(self, index, rel=False):
+        if rel:
+            self.sel += index
+        else:
+            self.sel = index
 
-    def _fix_sel(self):
         if len(self) > 0:
             self.sel = min(max(0, self.sel), len(self) - 1)
         else:
             self.sel = -1
 
-    def _load(self):
+        return self.sel
+
+    def selected(self):
+        if self.sel >= 0:
+            return self.children[self.sel]
+        return None
+
+
+class DirectoryNode(InternalNode):
+
+    def __init__(self, mpd, path, parent):
+        super(DirectoryNode, self).__init__(mpd, parent, "directory")
+        self.path = path
+
+    def __str__(self):
+        return self.path.name() + "/"
+
+    def load(self):
         children = []
 
         try:
@@ -125,54 +133,14 @@ class DirectoryNode(BrowserNode):
         self.children = children
         self.select(0)
 
-    def load(self):
-        self._load()
 
-    def select(self, index, rel=False):
-        if rel:
-            self.sel += index
-        else:
-            self.sel = index
-        self._fix_sel()
-        return self.sel
-
-    def selected(self):
-        if self.sel >= 0:
-            return self.children[self.sel]
-        return None
-
-
-class LinkNode(BrowserNode):
-
-    def __init__(self, mpd, link, parent, name=None):
-        super(LinkNode, self).__init__(mpd, parent, "link")
-        self.link = link
-        self.name = name if "name" != None else link.path.name()
-
-    def __str__(self):
-        return self.name
-
-
-class SearchNode(BrowserNode):
+class SearchNode(InternalNode):
 
     def __init__(self, mpd, s):
-        super(SearchNode, self).__init__(mpd, None, "search")
-        self.children = []
+        super(InternalNode, self).__init__(mpd, None, "search")
         self.string = s
         self.regex = re.compile(s, re.IGNORECASE)
         self.path = Path()
-
-    def __getitem__(self, index):
-        return self.children[index]
-
-    def __len__(self):
-        return len(self.children)
-
-    def _fix_sel(self):
-        if len(self) > 0:
-            self.sel = min(max(0, self.sel), len(self) - 1)
-        else:
-            self.sel = -1
 
     def _search(self, node):
         for n in node.children:
@@ -186,18 +154,16 @@ class SearchNode(BrowserNode):
         self._search(tree)
         self.select(0)
 
-    def select(self, index, rel=False):
-        if rel:
-            self.sel += index
-        else:
-            self.sel = index
-        self._fix_sel()
-        return self.sel
 
-    def selected(self):
-        if self.sel >= 0:
-            return self.children[self.sel]
-        return None
+class LinkNode(BrowserNode):
+
+    def __init__(self, mpd, link, parent, name=None):
+        super(LinkNode, self).__init__(mpd, parent, "link")
+        self.link = link
+        self.name = name if "name" != None else link.path.name()
+
+    def __str__(self):
+        return self.name
 
 
 class Browser(Listenable):

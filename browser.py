@@ -4,6 +4,7 @@
 import re
 import traceback
 
+from common import Listenable
 from list import List
 from status import Song
 from wrapper import MPDWrapper
@@ -82,6 +83,9 @@ class DirectoryNode(BrowserNode):
         self.children = []
         self.path = path
 
+    def __getitem__(self, index):
+        return self.children[index]
+
     def __len__(self):
         return len(self.children)
 
@@ -119,8 +123,7 @@ class DirectoryNode(BrowserNode):
             children.insert(1, LinkNode(self.mpd, self.parent, self, "../"))
 
         self.children = children
-        if len(self.children) > 0:
-            self.sel = 0
+        self.select(0)
 
     def load(self):
         self._load()
@@ -150,19 +153,67 @@ class LinkNode(BrowserNode):
         return self.name
 
 
-class Browser(List):
+class SearchNode(BrowserNode):
+
+    def __init__(self, mpd, s):
+        super(SearchNode, self).__init__(mpd, None, "search")
+        self.children = []
+        self.string = s
+        self.regex = re.compile(s, re.IGNORECASE)
+        self.path = Path()
+
+    def __getitem__(self, index):
+        return self.children[index]
+
+    def __len__(self):
+        return len(self.children)
+
+    def _fix_sel(self):
+        if len(self) > 0:
+            self.sel = min(max(0, self.sel), len(self) - 1)
+        else:
+            self.sel = -1
+
+    def _search(self, node):
+        for n in node.children:
+            if n.ntype == "directory":
+                self._search(n)
+            if n.ntype == "song" and n.data.matches(self.regex):
+                self.children.append(n)
+
+    def search(self, tree):
+        self.children = []
+        self._search(tree)
+        self.select(0)
+
+    def select(self, index, rel=False):
+        if rel:
+            self.sel += index
+        else:
+            self.sel = index
+        self._fix_sel()
+        return self.sel
+
+    def selected(self):
+        if self.sel >= 0:
+            return self.children[self.sel]
+        return None
+
+
+class Browser(Listenable):
 
     def __init__(self, mpd):
-        super(Browser, self).__init__([])
+        super(Browser, self).__init__()
         self.mpd = mpd
         self.tree = DirectoryNode(mpd, Path(), None)
         self.curr_node = None
+        self.prev_node = None
+        self.search_node = None
 
     def _set_selected(self, node):
         if node:
             self.curr_node = node
-            self.sel = self.curr_node.sel
-            self.set_list(self.curr_node.children)
+            self.notify("browser_node_changed", self)
 
     def enter(self):
         selnode = self.curr_node.selected()
@@ -186,6 +237,8 @@ class Browser(List):
 
     def load(self):
         self.tree.load()
+        if self.search_active():
+            self.search(None)
         self._set_selected(self.tree)
 
     def path_str(self, delim="/"):
@@ -193,7 +246,47 @@ class Browser(List):
             return delim.join(self.curr_node.path.list)
         return ""
 
+    def _search_start(self, s):
+        self.search_node = SearchNode(self.mpd, s)
+        self.search_node.search(self.tree)
+        self.prev_node = self.curr_node
+        self.curr_node = self.search_node
+        self.notify("browser_search_started", self)
+
+    def _search_stop(self):
+        self.curr_node = self.prev_node
+        self.search_node = None
+        self.notify("browser_search_stopped", self)
+
+    def search(self, s):
+        if s == None:
+            self._search_stop()
+        else:
+            if self.curr_node is self.search_node:
+                self._search_stop()
+            self._search_start(s)
+
+    def search_active(self):
+        return self.search_node != None
+
     def select(self, index, rel=False):
-        if self.curr_node != None:
-            self.sel = self.curr_node.select(index, rel)
-            self.notify("list_selected_changed", self)
+        self.curr_node.select(index, rel)
+        self.notify("browser_selected_changed", self)
+
+    def selected(self):
+        return self.curr_node.selected()
+
+
+class BrowserListener(object):
+
+    def browser_node_changed(self, browser):
+        pass
+
+    def browser_selected_changed(self, browser):
+        pass
+
+    def browser_search_started(self, browser):
+        pass
+
+    def browser_search_stopped(self, browser):
+        pass

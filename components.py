@@ -191,7 +191,7 @@ class PlaylistUI(ListUI, StatusListener):
         pass
 
 
-class BrowserBar(Component, ListListener):
+class BrowserBar(Component, BrowserListener):
 
     def __init__(self, tb, browser):
         super(BrowserBar, self).__init__(tb)
@@ -244,27 +244,80 @@ class PlaylistBar(Component, ListListener):
         self.search_active = False
 
 
-class BrowserUI(ListUI, ListListener):
+class BrowserUI(MainComponent, BrowserListener):
 
     def __init__(self, tb, browser):
-        super(BrowserUI, self).__init__(tb, browser)
-        self.list.add_listener(self)
+        super(BrowserUI, self).__init__(tb, True)
+        self.browser = browser
+        self.browser.add_listener(self)
+        self.start = 0
+        self.node = None
 
     def _format(self, song, unused_y, pos):
         f = Format()
 
         numw = 0
-        if len(self.list) > 0:
-            numw = int(math.floor(math.log10(len(self.list)))) + 2
+        if len(self.node) > 0:
+            numw = int(math.floor(math.log10(len(self.node)))) + 2
         num_str = "%s " % str(pos + 1)
         f.add(num_str.rjust(numw + 1), *color_browser_number)
         f.add(unicode(song), *color_browser_line)
 
-        if pos == self.list.sel:
+        if pos == self.node.sel:
             f.set_color(*color_browser_selected)
             f.add("".ljust(max(0, self.w - len(f.s))),
                     *color_browser_selected)
         return f
+
+    def _fix_bounds(self):
+        if len(self.node) > 0:
+            if (self.node.sel - self.start) >= self.h:
+                self.start = self.node.sel - self.h + 1
+            if self.node.sel < self.start:
+                self.start = self.node.sel
+            self.start = min(max(0, self.start), len(self.node) - 1)
+
+    def _format(self, o, y, p):
+        s = "%5i %5i %s" % (p, y, unicode(o))
+        return Format(s.ljust(self.w), termbox.RED if p == self.node.sel else
+                termbox.WHITE)
+
+    def draw(self):
+        if not self.node:
+            return
+        length = len(self.node)
+        empty = Format("".ljust(self.w))
+        for y in range(self.h):
+            p = y + self.start
+            f = self._format(self.node[p], y, p) if p < length else empty
+            self.change_cells_format(0, y, f)
+
+    def browser_node_changed(self, browser):
+        self.node = self.browser.curr_node
+        self._fix_bounds()
+
+    def browser_selected_changed(self, browser):
+        self._fix_bounds()
+
+    def browser_search_started(self, browser):
+        self.node = self.browser.curr_node
+        self._fix_bounds()
+
+    def browser_search_stopped(self, browser):
+        self.node = self.browser.curr_node
+        self._fix_bounds()
+
+    def select(self, index, rel=False):
+        if self.node:
+            self.browser.select(index, rel)
+
+    def selected(self):
+        if self.node:
+            return self.node.selected()
+        return None
+
+    def search(self, s):
+        self.browser.search(s)
 
 
 class CurrentSongUI(Component, StatusListener):

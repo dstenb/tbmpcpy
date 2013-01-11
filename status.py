@@ -55,10 +55,7 @@ class Playlist(List):
         items = []
         regex = re.compile(self.search_string, re.IGNORECASE)
 
-        print(self.real_items)
-
         for v in self.real_items:
-            print(v.matches(regex))
             if v.matches(regex):
                 items.append(v)
         return items
@@ -75,7 +72,6 @@ class Progress(object):
         if self.total_time > 0:
             return (self.elapsed_time / float(self.total_time))
         return -1
-
 
     def update(self, ts):
         self.elapsed_time += (ts - self.last) / 1000.0

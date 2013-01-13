@@ -73,8 +73,7 @@ def format_browser_item(node, pos, selected, w, numw):
 
     if selected:
         f.set_color(*color_browser_selected)
-        f.add("".ljust(max(0, w - len(f.s))),
-                *color_browser_selected)
+        f.add("".ljust(max(0, w - len(f.s))), *color_browser_selected)
     return f
 
 
@@ -82,15 +81,14 @@ def format_playlist_song(song, pos, selected, current, w, numw):
     left, right = Format(), Format()
 
     left.add(str(pos + 1).rjust(numw), *color_playlist_number)
-    left.add(" %s - %s" % (song.artist, song.title),
+    left.add(" %s - %s (%s)" % (song.artist, song.title, song.album),
             *color_playlist_line)
     right.add(" [%s]" % length_str(song.time), *color_playlist_time)
 
     if selected:
         left.set_color(*color_playlist_selected)
         right.set_color(*color_playlist_selected)
-        left.add("".ljust(max(0, w - len(left.s))),
-                *color_playlist_selected)
+        left.add("".ljust(max(0, w - len(left.s))), *color_playlist_selected)
     if current:
         left.set_bold()
         right.set_bold()

@@ -21,15 +21,21 @@ class Path(object):
     def __str__(self):
         return "/".join(self.list)
 
+    def copy(self):
+        return Path(unicode(self))
+
     def name(self):
-        return self.list[-1]
+        if len(self.list) > 0:
+            return self.list[-1]
+        return None
 
     def pop(self):
         if len(self.list) > 0:
             del self.list[-1]
 
     def push(self, s):
-        self.list.append(s)
+        if len(s) > 0:
+            self.list.append(s)
 
 
 class BrowserNode(object):
@@ -91,6 +97,11 @@ class InternalNode(BrowserNode):
 
         return self.sel
 
+    def select_node(self, node):
+        for i, n in enumerate(self.children):
+            if n == node:
+                self.select(i)
+
     def selected(self):
         if self.sel >= 0:
             return self.children[self.sel]
@@ -127,11 +138,19 @@ class DirectoryNode(InternalNode):
 
         # Add links to root and previous directory
         if self.parent != None:
-            children.insert(0, LinkNode(self.mpd, None, self, "/"))
-            children.insert(1, LinkNode(self.mpd, self.parent, self, "../"))
+            children.insert(0, LinkNode(self.mpd, self, Path(), "/"))
+            children.insert(1, LinkNode(self.mpd, self,
+                self.parent.path.copy(), "../"))
 
         self.children = children
         self.select(0)
+
+    def lookup(self, name):
+        for n in self.children:
+            print(n.path.list)
+            if n.path.name() and n.path.name() == name:
+                return n
+        return None
 
 
 class SearchNode(InternalNode):
@@ -146,7 +165,7 @@ class SearchNode(InternalNode):
         for n in node.children:
             if n.ntype == "directory":
                 self._search(n)
-            if n.ntype == "song" and n.data.matches(self.regex):
+            elif n.ntype == "song" and n.data.matches(self.regex):
                 self.children.append(n)
 
     def search(self, tree):
@@ -157,10 +176,10 @@ class SearchNode(InternalNode):
 
 class LinkNode(BrowserNode):
 
-    def __init__(self, mpd, link, parent, name=None):
+    def __init__(self, mpd, parent, path, name=None):
         super(LinkNode, self).__init__(mpd, parent, "link")
-        self.link = link
-        self.name = name if "name" != None else link.path.name()
+        self.name = name if "name" != None else path.name()
+        self.path = path
 
     def __str__(self):
         return self.name
@@ -193,8 +212,20 @@ class Browser(Listenable):
                 self._set_selected(selnode)
             elif selnode.ntype == "link":
                 self.curr_node.select(0)
-                self._set_selected(selnode.link if selnode.link != None
-                        else self.tree)
+                self.go_to(selnode.path)
+
+    def go_to(self, path):
+        node = self.tree
+        for p in path.list:
+            node = node.lookup(p)
+            if node == None:
+                return False
+        if node.ntype == "song":
+            node.parent.select_node(node)
+            self._set_selected(node.parent)
+        elif node.ntype == "directory":
+            self._set_selected(node)
+        return True
 
     def go_up(self):
         if self.curr_node and self.curr_node.parent:

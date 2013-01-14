@@ -85,22 +85,12 @@ class InternalNode(BrowserNode):
         return len(self.children)
 
     def select(self, index, rel=False):
-        if rel:
-            self.sel += index
-        else:
-            self.sel = index
-
-        if len(self) > 0:
-            self.sel = min(max(0, self.sel), len(self) - 1)
-        else:
-            self.sel = -1
-
+        self.sel = (self.sel + index) if rel else index
+        self.sel = min(max(0, self.sel), len(self) - 1)
         return self.sel
 
     def select_node(self, node):
-        for i, n in enumerate(self.children):
-            if n == node:
-                self.select(i)
+        self.select(self.children.index(node))
 
     def selected(self):
         if self.sel >= 0:
@@ -147,7 +137,6 @@ class DirectoryNode(InternalNode):
 
     def lookup(self, name):
         for n in self.children:
-            print(n.path.list)
             if n.path.name() and n.path.name() == name:
                 return n
         return None

@@ -21,13 +21,13 @@ class MainComponent(Component):
     def is_list(self):
         return self.islist
 
+    def search(self, s):
+        pass
+
     def select(self, index, rel=False):
         pass
 
     def selected(self):
-        pass
-
-    def search(self, s):
         pass
 
 
@@ -104,7 +104,7 @@ class ListUI(MainComponent, ListListener):
     def draw(self):
         length = len(self.list)
         empty = Format("".ljust(self.w))
-        for y in range(self.h):
+        for y in xrange(self.h):
             p = y + self.start
             f = self._format(self.list[p], y, p) if p < length else empty
             self.change_cells_format(0, y, f)
@@ -145,7 +145,7 @@ class PlaylistUI(ListUI, StatusListener):
         numw = 0
         if length > 0:
             numw = int(math.floor(math.log10(len(self.list)))) + 2
-        for y in range(self.h):
+        for y in xrange(self.h):
             pos = y + self.start
             if pos < length:
                 left, right = format_playlist_song(self.list[pos], pos,
@@ -255,7 +255,7 @@ class BrowserUI(MainComponent, BrowserListener):
         if length > 0:
             numw = int(math.floor(math.log10(len(self.node)))) + 2
         empty = Format("".ljust(self.w))
-        for y in range(self.h):
+        for y in xrange(self.h):
             pos = y + self.start
             if pos < length:
                 f = format_browser_item(self.node[pos], pos,
@@ -281,13 +281,10 @@ class BrowserUI(MainComponent, BrowserListener):
         self.browser.search(s)
 
     def select(self, index, rel=False):
-        if self.node:
-            self.browser.select(index, rel)
+        self.browser.select(index, rel)
 
     def selected(self):
-        if self.node:
-            return self.node.selected()
-        return None
+        return self.browser.selected()
 
 
 class CurrentSongUI(Component, StatusListener):
@@ -348,7 +345,7 @@ class CommandLineUI(Component, CommandLineListener):
         def format(self):
             length = len(self.matched)
             empty = Format("".ljust(self.w))
-            for y in range(self.h):
+            for y in xrange(self.h):
                 pos = y + self.start
                 f = Format()
                 if y < length:

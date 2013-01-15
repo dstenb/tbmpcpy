@@ -81,6 +81,9 @@ class Component(Drawable):
         self.visible = True
         self.prefw, self.prefh = -1, -1
 
+    def _handle_resize(self):
+        pass
+
     def add_listener(self, o):
         if not o in self.listeners:
             self.listeners.append(o)
@@ -100,6 +103,7 @@ class Component(Drawable):
             self.x, self.y, self.w, self.h = x, y, w, h
             if notify:
                 self.notify("dim_changed")
+            self._handle_resize()
 
     def set_pref_dim(self, w, h):
         self.prefw, self.prefh = w, h

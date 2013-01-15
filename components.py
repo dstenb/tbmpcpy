@@ -101,6 +101,9 @@ class ListUI(MainComponent, ListListener):
                 self.start = self.list.sel
             self.start = min(max(0, self.start), len(self.list) - 1)
 
+    def _handle_resize(self):
+        self._fix_bounds()
+
     def draw(self):
         length = len(self.list)
         empty = Format("".ljust(self.w))
@@ -246,6 +249,9 @@ class BrowserUI(MainComponent, BrowserListener):
             if self.node.sel < self.start:
                 self.start = self.node.sel
             self.start = min(max(0, self.start), len(self.node) - 1)
+
+    def _handle_resize(self):
+        self._fix_bounds()
 
     def draw(self):
         if not self.node:

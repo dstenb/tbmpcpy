@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import re
+from re import compile, IGNORECASE
 import traceback
 
 from common import Listenable
@@ -147,14 +147,14 @@ class SearchNode(InternalNode):
     def __init__(self, mpd, s):
         super(InternalNode, self).__init__(mpd, None, "search")
         self.string = s
-        self.regex = re.compile(s, re.IGNORECASE)
+        self.rl = map(lambda s: compile(s, IGNORECASE), self.string.split())
         self.path = Path()
 
     def _search(self, node):
         for n in node.children:
             if n.ntype == "directory":
                 self._search(n)
-            elif n.ntype == "song" and n.data.matches(self.regex):
+            elif n.ntype == "song" and n.data.matches_all(self.rl):
                 self.children.append(n)
 
     def search(self, tree):

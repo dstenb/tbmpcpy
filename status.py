@@ -1,4 +1,4 @@
-import re
+from re import compile, IGNORECASE
 
 from browser import *
 from common import *
@@ -52,13 +52,8 @@ class Playlist(List):
         self.set_list(self.real_items)
 
     def _search(self):
-        items = []
-        regex = re.compile(self.search_string, re.IGNORECASE)
-
-        for v in self.real_items:
-            if v.matches(regex):
-                items.append(v)
-        return items
+        rl = map(lambda s: compile(s, IGNORECASE), self.search_string.split())
+        return filter(lambda s: s.matches_all(rl), self.real_items)
 
 
 class Progress(object):

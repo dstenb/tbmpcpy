@@ -254,8 +254,7 @@ class MainSearchCommand(ResCommand):
     def execute(self, *args):
         s = None
         if len(args) > 0:
-            s = args[0]
-
+            s = " ".join(args)
         if self.ui.main and self.ui.main.is_list():
             self.ui.main.search(s)
 

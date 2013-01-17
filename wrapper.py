@@ -44,6 +44,9 @@ class Song(object):
             return True
         return False
 
+    def matches_all(self, regexes):
+        return all(self.matches(r) for r in regexes)
+
 
 class MPDWrapper():
 

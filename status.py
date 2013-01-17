@@ -16,11 +16,8 @@ class Playlist(List):
         self.playtime = 0
 
     def init(self, _songs, version):
-        songs = []
-        for d in _songs:
-            songs.append(Song(d))
         self.version = version
-        self.set_list(songs)
+        self.set_list(map(lambda d: Song(d), _songs))
 
     def _handle_set(self):
         self.playtime = 0

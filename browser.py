@@ -118,7 +118,7 @@ class DirectoryNode(InternalNode):
                     children.append(c)
                 elif "playlist" in v:
                     c = PlaylistNode(self.mpd, v["playlist"], self)
-                    children.append(c)
+                    #children.append(c)
                 elif "file" in v:
                     c = SongNode(self.mpd, Song(v), self)
                     children.append(c)

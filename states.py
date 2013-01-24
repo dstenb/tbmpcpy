@@ -261,9 +261,20 @@ class SearchState(State):
             termbox.KEY_ESC: (ChangeStateCommand(self), ())
         })
 
-    def activate(self, unused_args={}):
+    def activate(self, args={}):
         if not (self.ui.main and self.ui.main.is_list()):
             self.deactivate()
+
+    def key_event(self, ch, key, unused_mod):
+        t = self.bindings.get(ch, key)
+        if t:
+            cmd, args = t
+            try:
+                cmd.execute(*args)
+            except CommandExecutionError, err:
+                self.msg.error(unicode(err), 2)
+        elif ch:
+            pass  # TODO add()
 
 
 class BrowserState(State):

@@ -117,7 +117,10 @@ class CommandLine(Listenable):
         self.notify("line_changed", self)
 
     def split(self):
-        s = self.buf.split(" ")
+        s = re.findall(re.compile(r'(\"\w+\"|\w+)'), self.buf)
+        if self.buf.endswith(" "):
+            s.append("")
+        print(s)
         return s[0] if len(s) > 0 else None, s[1:]
 
     def _autocomplete_clear(self):

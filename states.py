@@ -3,6 +3,7 @@
 from command import *
 from commands import *
 from components import *
+from search import *
 from status import *
 from ui import *
 import math
@@ -60,7 +61,6 @@ class State(object):
                     "1": (ChangeStateCommand(self), ("playlist", )),
                     "2": (ChangeStateCommand(self), ("browser", )),
                     ":": (ChangeStateCommand(self), ("command", )),
-                    "/": (ChangeStateCommand(self), ("search", )),
 
                     # Launch commands
                     "c": (EnterCommand(self), ("consume ", True)),
@@ -120,6 +120,8 @@ class PlaylistState(State):
     def __init__(self, *args):
         super(PlaylistState, self).__init__(*args, default_keys=True)
 
+        self.search = PlaylistSearch(self.status.playlist)
+
         res = ResourceTuple(self.mpd, self.status, self.ui, self.browser)
 
         self.bindings.add_ch_list({
@@ -130,7 +132,9 @@ class PlaylistState(State):
             "C": (PlaylistClearCommand(res), ()),
             "d": (PlaylistDeleteCommand(res), ()),
             "f": (EnterCommand(self), ("search ", True)),
-            "F": (MainSearchCommand(res), ())
+            "F": (MainSearchCommand(res), ()),
+            "/": (ChangeStateCommand(self), ("search",
+                {"search": self.search}))
         })
         self.bindings.add_key_list({
             termbox.KEY_ENTER: (PlayCommand(res), ()),
@@ -141,6 +145,10 @@ class PlaylistState(State):
     def activate(self, unused_args={}):
         self.ui.set_main(self.ui.playlist)
         self.ui.show_top(self.ui.playlist_bar)
+
+#        if self.search.active:
+#            self.ui.search.set_search(self.search)
+#            self.ui.search.show()
 
 
 class CommandState(State):
@@ -258,12 +266,38 @@ class SearchState(State):
         self.bindings.add_ch_list({
         })
         self.bindings.add_key_list({
-            termbox.KEY_ESC: (ChangeStateCommand(self), ())
+            termbox.KEY_BACKSPACE2: (self.RemoveLastCommand(self), ()),
+            termbox.KEY_SPACE: (self.AddCommand(self), (" ", )),
+            termbox.KEY_ENTER: (self.ChangeStateCommand(self), (False, )),
+            termbox.KEY_ESC: (self.ChangeStateCommand(self), (True, ))
         })
+
+    class AddCommand(StateCommand):
+        def execute(self, s):
+            self.state.search.add(s)
+
+    class ChangeStateCommand(StateCommand):
+        def execute(self, clear):
+            if clear:
+                self.state.search.clear()
+            self.state.deactivate()
+
+    class RemoveLastCommand(StateCommand):
+        def execute(self):
+            self.state.search.remove_last()
 
     def activate(self, args={}):
         if not (self.ui.main and self.ui.main.is_list()):
             self.deactivate()
+        self.search = args["search"]
+        self.ui.search.set_search(self.search)
+        self.ui.search.show()
+        self.search.clear()
+
+    def deactivate(self, state=None, d={}):
+        self.ui.search.hide()
+        self.ui.search.fix_cursor()
+        self.listener.prev_state()
 
     def key_event(self, ch, key, unused_mod):
         t = self.bindings.get(ch, key)
@@ -274,7 +308,7 @@ class SearchState(State):
             except CommandExecutionError, err:
                 self.msg.error(unicode(err), 2)
         elif ch:
-            pass  # TODO add()
+            self.search.add(ch)
 
 
 class BrowserState(State):

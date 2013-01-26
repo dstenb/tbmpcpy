@@ -11,6 +11,7 @@ from browser import *
 from common import *
 from components import *
 from list import *
+from search import *
 from states import *
 from status import *
 from ui import *
@@ -41,7 +42,8 @@ class UI(VerticalLayout):
         bottom = [["current_song", CurrentSongUI, True, termbox, status],
                 ["progress_bar", ProgressBarUI, True, termbox, status],
                 ["message", MessageUI, False, termbox, msg],
-                ["command", CommandLineUI, False, termbox, None]]
+                ["command", CommandLineUI, False, termbox, None],
+                ["search", SearchUI, False, termbox]]
 
         for v in top:
             self.add_top(create(*v))

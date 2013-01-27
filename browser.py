@@ -245,11 +245,9 @@ class Browser(Listenable):
         self.notify("browser_search_stopped", self)
 
     def search(self, s):
-        if s == None:
+        if self.curr_node is self.search_node:
             self._search_stop()
-        else:
-            if self.curr_node is self.search_node:
-                self._search_stop()
+        if s != None:
             self._search_start(s)
 
     def search_active(self):

@@ -292,7 +292,6 @@ class SearchState(State):
         self.search = args["search"]
         self.ui.search.set_search(self.search)
         self.ui.search.show()
-        self.search.clear()
 
     def deactivate(self, state=None, d={}):
         self.ui.search.hide()
@@ -316,6 +315,8 @@ class BrowserState(State):
     def __init__(self, *args):
         super(BrowserState, self).__init__(*args, default_keys=True)
 
+        self.search = BrowserSearch(self.browser)
+
         res = ResourceTuple(self.mpd, self.status, self.ui, self.browser)
 
         self.bindings.add_ch_list({
@@ -326,7 +327,9 @@ class BrowserState(State):
             "u": (BrowserGoUpCommand(res), ()),
             "U": (BrowserUpdateCommand(res), ()),
             "f": (EnterCommand(self), ("search ", True)),
-            "F": (MainSearchCommand(res), ())
+            "F": (MainSearchCommand(res), ()),
+            "/": (ChangeStateCommand(self), ("search",
+                {"search": self.search}))
         })
         self.bindings.add_key_list({
             termbox.KEY_ENTER: (BrowserEnterCommand(res), ()),

@@ -1,3 +1,4 @@
+from browser import *
 from common import Listenable
 from list import *
 from ui import *
@@ -48,6 +49,32 @@ class PlaylistSearch(Search, ListListener):
         self._update()
 
     def list_search_stopped(self, unused):
+        self._update()
+
+
+class BrowserSearch(Search, BrowserListener):
+
+    def __init__(self, browser):
+        super(BrowserSearch, self).__init__()
+        self.browser = browser
+        self.browser.add_listener(self)
+
+    def _set(self, buf):
+        super(BrowserSearch, self)._set(buf)
+        if self.browser != None:
+            self.browser.search(self.buf or None)
+
+    def _update(self):
+        self.found = len(self.browser.curr_node) > 0
+        self.notify("search_changed")
+
+    def browser_node_changed(self, browser):
+        self._update()
+
+    def browser_search_started(self, browser):
+        self._update()
+
+    def browser_search_stopped(self, browser):
         self._update()
 
 

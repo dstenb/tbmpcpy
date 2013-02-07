@@ -139,7 +139,8 @@ class PlaylistState(State):
         self.bindings.add_key_list({
             termbox.KEY_ENTER: (PlayCommand(res), ()),
             termbox.KEY_ARROW_DOWN: (MainRelativeSelectCommand(res), ("1", )),
-            termbox.KEY_ARROW_UP: (MainRelativeSelectCommand(res), ("-1", ))
+            termbox.KEY_ARROW_UP: (MainRelativeSelectCommand(res), ("-1", )),
+            termbox.KEY_TAB: (ChangeStateCommand(self), ("browser", ))
         })
 
     def activate(self, unused_args={}):
@@ -336,7 +337,8 @@ class BrowserState(State):
             termbox.KEY_SPACE: (BrowserAddCommand(res), ()),
             termbox.KEY_BACKSPACE2: (BrowserGoUpCommand(res), ()),
             termbox.KEY_ARROW_DOWN: (MainRelativeSelectCommand(res), ("1", )),
-            termbox.KEY_ARROW_UP: (MainRelativeSelectCommand(res), ("-1", ))
+            termbox.KEY_ARROW_UP: (MainRelativeSelectCommand(res), ("-1", )),
+            termbox.KEY_TAB: (ChangeStateCommand(self), ("playlist", ))
         })
 
     def activate(self, unused_args={}):

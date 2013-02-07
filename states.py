@@ -131,13 +131,12 @@ class PlaylistState(State):
             "G": (MainSelectCommand(res), (str(sys.maxsize), )),
             "C": (PlaylistClearCommand(res), ()),
             "d": (PlaylistDeleteCommand(res), ()),
-            "f": (EnterCommand(self), ("search ", True)),
-            "F": (MainSearchCommand(res), ()),
             "/": (ChangeStateCommand(self), ("search",
                 {"search": self.search}))
         })
         self.bindings.add_key_list({
             termbox.KEY_ENTER: (PlayCommand(res), ()),
+            termbox.KEY_ESC: (MainSearchCommand(res), ()),
             termbox.KEY_ARROW_DOWN: (MainRelativeSelectCommand(res), ("1", )),
             termbox.KEY_ARROW_UP: (MainRelativeSelectCommand(res), ("-1", )),
             termbox.KEY_TAB: (ChangeStateCommand(self), ("browser", ))
@@ -334,6 +333,7 @@ class BrowserState(State):
         })
         self.bindings.add_key_list({
             termbox.KEY_ENTER: (BrowserEnterCommand(res), ()),
+            termbox.KEY_ESC: (MainSearchCommand(res), ()),
             termbox.KEY_SPACE: (BrowserAddCommand(res), ()),
             termbox.KEY_BACKSPACE2: (BrowserGoUpCommand(res), ()),
             termbox.KEY_ARROW_DOWN: (MainRelativeSelectCommand(res), ("1", )),

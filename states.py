@@ -326,8 +326,6 @@ class BrowserState(State):
             "G": (MainSelectCommand(res), (str(sys.maxsize), )),
             "u": (BrowserGoUpCommand(res), ()),
             "U": (BrowserUpdateCommand(res), ()),
-            "f": (EnterCommand(self), ("search ", True)),
-            "F": (MainSearchCommand(res), ()),
             "/": (ChangeStateCommand(self), ("search",
                 {"search": self.search}))
         })

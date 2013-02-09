@@ -95,12 +95,32 @@ class SeekCurCommand(ResCommand):
             raise MissingArgException("requires one argument")
         try:
             int(args[0])
-            if self.status.is_playing():
+            if self.status.state in ["play", "pause"]:
                 self.mpd.player("seekcur", args[0])
         except ValueError:
             raise WrongArgException(args[0], "expected number")
         except CommandError:
             raise CommandExecutionError("Couldn't execute 'seekcur' command")
+
+
+class SeekCurPercentageCommand(ResCommand):
+
+    def __init__(self, res):
+        super(SeekCurPercentageCommand, self).__init__(res, "seekcur_per", "")
+
+    def execute(self, *args):
+        if len(args) == 0:
+            raise MissingArgException("requires one argument")
+        try:
+            f = max(0.0, float(args[0]))
+            f = min(f, 1.0)
+
+            if self.status.current:
+                self.mpd.player("seekcur", int(f * self.status.current.time))
+        except ValueError:
+            raise WrongArgException(args[0], "expected number")
+        except CommandError:
+            raise CommandExecutionError("Couldn't execute 'seekcur_per' command")
 
 
 #### Playback options commands ####

@@ -56,16 +56,17 @@ class State(object):
                     "s": (StopCommand(res), ()),
                     "n": (NextCommand(res), ()),
                     "p": (PrevCommand(res), ()),
-
-                    # States
-                    "1": (ChangeStateCommand(self), ("playlist", )),
-                    "2": (ChangeStateCommand(self), ("browser", )),
-                    ":": (ChangeStateCommand(self), ("command", )),
+                    "f": (SeekCurCommand(res), ("+1", )),
+                    "b": (SeekCurCommand(res), ("-1", )),
 
                     # Launch commands
                     "c": (EnterCommand(self), ("consume ", True)),
                     "x": (EnterCommand(self), ("crossfade ", True))
             }
+            # Seek bindings
+            by_ch.update({str(n): (SeekCurPercentageCommand(self),
+                ("0.%i" % n, )) for n in xrange(10)})
+
             by_key = {}
 
         self.bindings = Keybindings(by_ch, by_key)
@@ -206,6 +207,7 @@ class CommandState(State):
                 "search": MainSearchCommand(res),
                 "random": boolean_option_command(res, "random"),
                 "repeat": boolean_option_command(res, "repeat"),
+                "seek": SeekCurCommand(res),
                 "single": boolean_option_command(res, "single"),
                 "stop": StopCommand(res),
                 "update": BrowserUpdateCommand(res)

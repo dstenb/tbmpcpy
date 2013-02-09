@@ -85,6 +85,24 @@ class ToggleCommand(ResCommand):
             raise CommandExecutionError("Couldn't execute '%s' command" % s)
 
 
+class SeekCurCommand(ResCommand):
+
+    def __init__(self, res):
+        super(SeekCurCommand, self).__init__(res, "seekcur", "")
+
+    def execute(self, *args):
+        if len(args) == 0:
+            raise MissingArgException("requires one argument")
+        try:
+            int(args[0])
+            if self.status.is_playing():
+                self.mpd.player("seekcur", args[0])
+        except ValueError:
+            raise WrongArgException(args[0], "expected number")
+        except CommandError:
+            raise CommandExecutionError("Couldn't execute 'seekcur' command")
+
+
 #### Playback options commands ####
 class BooleanOptionCommand(ResCommand):
 

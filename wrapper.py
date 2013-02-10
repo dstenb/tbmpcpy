@@ -161,4 +161,5 @@ class MPDWrapper():
         return Song(self.mpd.playlistid(songid)[0])
 
     def current_song(self):
-        return Song(self.mpd.currentsong())
+        d = self.mpd.currentsong()
+        return Song(d) if d else None

@@ -59,6 +59,8 @@ class State(object):
                     "f": (SeekCurCommand(res), ("+1", )),
                     "b": (SeekCurCommand(res), ("-1", )),
 
+                    ":": (ChangeStateCommand(self), ("command", )),
+
                     # Launch commands
                     "c": (EnterCommand(self), ("consume ", True)),
                     "x": (EnterCommand(self), ("crossfade ", True))

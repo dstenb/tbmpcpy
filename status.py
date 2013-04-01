@@ -15,6 +15,14 @@ class Playlist(List):
         self.version = 0
         self.playtime = 0
 
+    def find_next(self, reg):
+        rl = compile(reg, IGNORECASE)
+        # TODO beautify
+        for i in range(self.sel + 1, len(self)) + range(0, self.sel):
+            if rl.search(unicode(self[i])):
+                return i
+        return -1
+
     def init(self, _songs, version):
         self.version = version
         self.set_list(map(lambda d: Song(d), _songs))

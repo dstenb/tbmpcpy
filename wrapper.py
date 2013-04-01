@@ -38,6 +38,9 @@ class Song(object):
     def __ne__(self, o):
         return not self == o
 
+    def __str__(self):
+        return "%s - %s (%s)" % (self.artist, self.title, self.album)
+
     def matches(self, r):
         if (r.search(self.artist) or r.search(self.title)
                 or r.search(self.album)):

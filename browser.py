@@ -84,6 +84,14 @@ class InternalNode(BrowserNode):
     def __len__(self):
         return len(self.children)
 
+    def find_next(self, reg):
+        rl = compile(reg, IGNORECASE)
+        # TODO beautify
+        for i in range(self.sel + 1, len(self)) + range(0, self.sel):
+            if rl.search(unicode(self[i])):
+                return i
+        return -1
+
     def select(self, index, rel=False):
         self.sel = (self.sel + index) if rel else index
         self.sel = min(max(0, self.sel), len(self) - 1)
@@ -202,6 +210,9 @@ class Browser(Listenable):
             elif selnode.ntype == "link":
                 self.curr_node.select(0)
                 self.go_to(selnode.path)
+
+    def find_next(self, reg):
+        return self.curr_node.find_next(reg)
 
     def go_to(self, path):
         node = self.tree

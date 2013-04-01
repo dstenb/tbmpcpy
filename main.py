@@ -177,7 +177,8 @@ class Main(object):
         self.states = {"playlist": PlaylistState(*args),
                 "browser": BrowserState(*args),
                 "command": CommandState(*args),
-                "search": SearchState(*args)}
+                "search": SearchState(*args),
+                "find": FindNextState(*args)}
         self.change_state("playlist")
 
 

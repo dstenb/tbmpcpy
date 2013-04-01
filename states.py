@@ -56,8 +56,8 @@ class State(object):
                     "s": (StopCommand(res), ()),
                     "n": (NextCommand(res), ()),
                     "p": (PrevCommand(res), ()),
-                    "f": (SeekCurCommand(res), ("+1", )),
-                    "b": (SeekCurCommand(res), ("-1", )),
+                    ">": (SeekCurCommand(res), ("+5", )),
+                    "<": (SeekCurCommand(res), ("-5", )),
 
                     ":": (ChangeStateCommand(self), ("command", )),
 
@@ -135,7 +135,10 @@ class PlaylistState(State):
             "C": (PlaylistClearCommand(res), ()),
             "d": (PlaylistDeleteCommand(res), ()),
             "/": (ChangeStateCommand(self), ("search",
-                {"search": self.search}))
+                {"search": self.search})),
+            "f": (ChangeStateCommand(self), ("find",
+                {"list": self.status.playlist}))
+
         })
         self.bindings.add_key_list({
             termbox.KEY_ENTER: (PlayCommand(res), ()),
@@ -331,7 +334,9 @@ class BrowserState(State):
             "u": (BrowserGoUpCommand(res), ()),
             "U": (BrowserUpdateCommand(res), ()),
             "/": (ChangeStateCommand(self), ("search",
-                {"search": self.search}))
+                {"search": self.search})),
+            "f": (ChangeStateCommand(self), ("find",
+                { "list": self.browser }))
         })
         self.bindings.add_key_list({
             termbox.KEY_ENTER: (BrowserEnterCommand(res), ()),
@@ -346,3 +351,20 @@ class BrowserState(State):
     def activate(self, unused_args={}):
         self.ui.set_main(self.ui.browser)
         self.ui.show_top(self.ui.browser_bar)
+
+
+class FindNextState(State):
+
+    def __init__(self, *args):
+        super(FindNextState, self).__init__(*args, default_keys=False)
+        self.l = None
+
+    def activate(self, args={}):
+        self.l = args["list"]
+
+    def key_event(self, ch, key, unused_mod):
+        if ch:
+            index = self.l.find_next("^" + ch) #TODO: escape ch
+            if index >= 0:
+                self.l.select(index)
+        self.deactivate()

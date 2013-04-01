@@ -153,7 +153,7 @@ class Status:
         self._set_playlist(self.mpd.plchanges(0), int(results["playlist"]))
         self._set_state(results.get("state", "unknown"))
         self._set_current(int(results.get("song", -1)))
-        self._set_elapsed(int(results.get("elapsed", "0").split(".")[0]))
+        self._set_elapsed(elapsed_sec(results))
         self._update_options(results)
 
     def _update_options(self, results):

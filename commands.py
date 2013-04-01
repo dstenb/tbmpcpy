@@ -95,8 +95,8 @@ class SeekCurCommand(ResCommand):
             raise MissingArgException("requires one argument")
         try:
             int(args[0])
-            if self.status.state in ["play", "pause"]:
-                self.mpd.player("seekcur", args[0])
+            if self.status.current:
+                self.mpd.seekcur(args[0])
         except ValueError:
             raise WrongArgException(args[0], "expected number")
         except CommandError:
@@ -116,7 +116,7 @@ class SeekCurPercentageCommand(ResCommand):
             f = min(f, 1.0)
 
             if self.status.current:
-                self.mpd.player("seekcur", int(f * self.status.current.time))
+                self.mpd.seekcur(str(int(f * self.status.current.time)))
         except ValueError:
             raise WrongArgException(args[0], "expected number")
         except CommandError:

@@ -4,6 +4,14 @@ from mpd import (MPDClient, CommandError)
 from socket import error as SocketError
 
 
+def unknown_command_error(e, cmd):
+    return str(e) == "[5@0] {} unknown command \"%s\"" % cmd
+
+
+def elapsed_sec(s):
+    return int(s.get("elapsed", "0").split(".")[0])
+
+
 class Changes:
 
     def __init__(self):
@@ -162,6 +170,25 @@ class MPDWrapper():
 
     def playlist_song(self, songid):
         return Song(self.mpd.playlistid(songid)[0])
+
+    # Fallback if seekcur command isn't available
+    def _seekcur_fallback(self, posstr):
+        status = self.status()
+        time = posstr
+        if any(posstr.startswith(c) for c in "+-"):
+            time = str(elapsed_sec(status) + int(posstr))
+        getattr(self.mpd, "seek")(status.get("song", "-1"), time)
+
+    def seekcur(self, posstr):
+        if self.connected:
+            self.changes.add("player")
+            self.noidle()
+            try:
+                getattr(self.mpd, "seekcur")(posstr)
+            except CommandError as e:
+                if not unknown_command_error(e, "seekcur"):
+                    raise
+                self._seekcur_fallback(posstr)
 
     def current_song(self):
         d = self.mpd.currentsong()

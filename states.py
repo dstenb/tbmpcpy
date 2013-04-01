@@ -8,6 +8,7 @@ from status import *
 from ui import *
 import math
 import sys
+from re import escape
 
 
 class Keybindings:
@@ -357,14 +358,14 @@ class FindNextState(State):
 
     def __init__(self, *args):
         super(FindNextState, self).__init__(*args, default_keys=False)
-        self.l = None
+        self._list = None
 
     def activate(self, args={}):
-        self.l = args["list"]
+        self._list = args["list"]
 
     def key_event(self, ch, key, unused_mod):
         if ch:
-            index = self.l.find_next("^" + ch) #TODO: escape ch
+            index = self._list.find_next("^%s" % escape(ch))
             if index >= 0:
-                self.l.select(index)
+                self._list.select(index)
         self.deactivate()

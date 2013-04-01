@@ -10,7 +10,7 @@ class Search(Listenable):
         super(Search, self).__init__()
         self.buf = ""
         self.active = False
-        self.found = False
+        self.found = True
 
     def _set(self, buf):
         self.buf = buf
@@ -114,6 +114,7 @@ class SearchUI(Component):
             self.search.remove_listener(self)
         self.search = search
         self.search.add_listener(self)
+        self._update()
 
     def search_changed(self):
         self._update()

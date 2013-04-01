@@ -300,6 +300,7 @@ class SearchState(State):
         self.search = args["search"]
         self.ui.search.set_search(self.search)
         self.ui.search.show()
+        self.search.clear()
 
     def deactivate(self, state=None, d={}):
         self.ui.search.hide()

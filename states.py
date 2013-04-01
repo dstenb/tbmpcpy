@@ -298,9 +298,8 @@ class SearchState(State):
         if not (self.ui.main and self.ui.main.is_list()):
             self.deactivate()
         self.search = args["search"]
-        self.ui.search.set_search(self.search)
         self.ui.search.show()
-        self.search.clear()
+        self.ui.search.set_search(self.search)
 
     def deactivate(self, state=None, d={}):
         self.ui.search.hide()

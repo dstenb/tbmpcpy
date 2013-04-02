@@ -168,14 +168,20 @@ class PlaylistUI(ListUI, StatusListener):
 
 class TextComponent(MainComponent):
 
-    def __init__(self, tb, tlist):
+    def __init__(self, tb, tlist, title="", show_bar=True):
         super(TextComponent, self).__init__(tb, False)
         self.tlist = tlist
         self.start = 0
+        self.title = title
+        self.show_bar = show_bar
+
+    def _text_height(self):
+        return (self.h - 1) if self.show_bar else self.h
 
     def _fix_bounds(self):
         if len(self.tlist) > 0:
-            self.start = max(0, min((len(self.tlist) - self.h, self.start)))
+            self.start = max(0, min((len(self.tlist) - self._text_height(),
+                self.start)))
 
     def _handle_resize(self):
         self._fix_bounds()
@@ -186,14 +192,35 @@ class TextComponent(MainComponent):
         f.add(i, termbox.WHITE, termbox.BLACK)
         return f
 
+    def _format_bar(self):
+        left, right = Format(), Format()
+        left.add(" %s" % self.title, termbox.WHITE, termbox.BLACK)
+        if self.h >= len(self.tlist):
+            right.add("Whole ", termbox.WHITE, termbox.BLACK)
+        else:
+            p = self.start / float((len(self.tlist) - self._text_height()))
+            if p == 0.0:
+                right.add("Top ", termbox.WHITE, termbox.BLACK)
+            elif p == 1.0:
+                right.add("Bottom ", termbox.WHITE, termbox.BLACK)
+            else:
+                right.add("%.2f%% " % (p * 100), termbox.WHITE, termbox.BLACK)
+        left.set_bold()
+        right.set_bold()
+
+        return left, right
+
     def draw(self):
         length = len(self.tlist)
         empty = Format("".ljust(self.w))
-        for y in xrange(self.h - 1):
+        for y in xrange(self._text_height()):
             p = y + self.start
             f = self._format(self.tlist[p], y, p) if p < length else empty
             self.change_cells_format(0, y, f)
-        # TODO
+        if self.show_bar:
+            left, right = self._format_bar()
+            self.change_cells_format(0, self.h - 1, left)
+            self.change_cells_format(self.w - len(right.s), self.h - 1, right)
 
     def set_start(self, start, rel=False):
         self.start = (self.start + start) if rel else start

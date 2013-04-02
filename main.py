@@ -39,7 +39,8 @@ class UI(VerticalLayout):
 
         main = [["playlist", PlaylistUI, False, termbox, status],
                 ["browser", BrowserUI, False, termbox, browser],
-                ["help", TextComponent, False, termbox, help_text]]
+                ["help", TextComponent, False, termbox, help_text, "Help",
+                    True]]
 
         bottom = [["current_song", CurrentSongUI, True, termbox, status],
                 ["progress_bar", ProgressBarUI, True, termbox, status],

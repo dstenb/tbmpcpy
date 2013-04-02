@@ -61,6 +61,7 @@ class State(object):
                     "<": (SeekCurCommand(res), ("-5", )),
 
                     ":": (ChangeStateCommand(self), ("command", )),
+                    "h": (ChangeStateCommand(self), ("help", )),
 
                     # Launch commands
                     "c": (EnterCommand(self), ("consume ", True)),
@@ -369,3 +370,30 @@ class FindNextState(State):
             if index >= 0:
                 self._list.select(index)
         self.deactivate()
+
+
+class HelpState(State):
+
+    def __init__(self, *args):
+        super(HelpState, self).__init__(*args, default_keys=True)
+
+        res = ResourceTuple(self.mpd, self.status, self.ui, self.browser)
+
+        self.bindings.add_ch_list({
+            "j": (MainTextSetStartCommand(res), (1, True )),
+            "k": (MainTextSetStartCommand(res), (-1, True )),
+            "g": (MainTextSetStartCommand(res), (0, False )),
+            "G": (MainTextSetStartCommand(res), (sys.maxsize, False )),
+        })
+        self.bindings.add_key_list({
+            termbox.KEY_ARROW_DOWN: (MainTextSetStartCommand(res), (1, True)),
+            termbox.KEY_ARROW_UP: (MainTextSetStartCommand(res), (-1, True)),
+            termbox.KEY_ESC: (ChangeStateCommand(self), (True, ))
+        })
+
+    def activate(self, args={}):
+        self.ui.set_main(self.ui.help)
+        self.ui.show_top(None)
+
+    def deactivate(self, s=None, d={}):
+        self.listener.prev_state()

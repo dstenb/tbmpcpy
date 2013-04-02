@@ -11,6 +11,7 @@ from common import *
 from status import *
 from ui import *
 
+from sys import maxsize
 
 class MainComponent(Component):
 
@@ -163,6 +164,40 @@ class PlaylistUI(ListUI, StatusListener):
 
     def list_search_stopped(self, unused_ref):
         pass
+
+
+class TextComponent(MainComponent):
+
+    def __init__(self, tb, tlist):
+        super(TextComponent, self).__init__(tb, False)
+        self.tlist = tlist
+        self.start = 0
+
+    def _fix_bounds(self):
+        if len(self.tlist) > 0:
+            self.start = max(0, min((len(self.tlist) - self.h, self.start)))
+
+    def _handle_resize(self):
+        self._fix_bounds()
+
+    def _format(self, i, y, p):
+        f = Format()
+        f.add("%i " % p, termbox.YELLOW, termbox.BLACK)
+        f.add(i, termbox.WHITE, termbox.BLACK)
+        return f
+
+    def draw(self):
+        length = len(self.tlist)
+        empty = Format("".ljust(self.w))
+        for y in xrange(self.h - 1):
+            p = y + self.start
+            f = self._format(self.tlist[p], y, p) if p < length else empty
+            self.change_cells_format(0, y, f)
+        # TODO
+
+    def set_start(self, start, rel=False):
+        self.start = (self.start + start) if rel else start
+        self._fix_bounds()
 
 
 class BrowserBar(Component, BrowserListener):

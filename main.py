@@ -10,6 +10,7 @@ import traceback
 from browser import *
 from common import *
 from components import *
+from help import *
 from list import *
 from search import *
 from states import *
@@ -37,7 +38,8 @@ class UI(VerticalLayout):
                 ["playlist_bar", PlaylistBar, True, termbox, status.playlist]]
 
         main = [["playlist", PlaylistUI, False, termbox, status],
-                ["browser", BrowserUI, False, termbox, browser]]
+                ["browser", BrowserUI, False, termbox, browser],
+                ["help", TextComponent, False, termbox, help_text]]
 
         bottom = [["current_song", CurrentSongUI, True, termbox, status],
                 ["progress_bar", ProgressBarUI, True, termbox, status],
@@ -178,7 +180,8 @@ class Main(object):
                 "browser": BrowserState(*args),
                 "command": CommandState(*args),
                 "search": SearchState(*args),
-                "find": FindNextState(*args)}
+                "find": FindNextState(*args),
+                "help": HelpState(*args)}
         self.change_state("playlist")
 
 

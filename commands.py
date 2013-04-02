@@ -325,6 +325,16 @@ class MainRelativeSelectCommand(ResCommand):
             self.ui.main.select(int(args[0]), True)
 
 
+class MainTextSetStartCommand(ResCommand):
+
+    def __init__(self, res):
+        super(MainTextSetStartCommand, self).__init__(res, "", "")
+
+    def execute(self, pos, rel=False):
+        if self.ui.main:
+            self.ui.main.set_start(pos, rel)
+
+
 class QuitCommand(ResCommand):
 
     def __init__(self, res):

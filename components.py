@@ -197,15 +197,15 @@ class TextComponent(MainComponent):
         left, right = Format(), Format()
         left.add(" %s" % self.title, termbox.WHITE, termbox.BLACK)
         if self.h >= len(self.tlist):
-            right.add("Whole ", termbox.WHITE, termbox.BLACK)
+            right.add("All ", termbox.WHITE, termbox.BLACK)
         else:
             p = self.start / float((len(self.tlist) - self._text_height()))
             if p == 0.0:
                 right.add("Top ", termbox.WHITE, termbox.BLACK)
             elif p == 1.0:
-                right.add("Bottom ", termbox.WHITE, termbox.BLACK)
+                right.add("Bot ", termbox.WHITE, termbox.BLACK)
             else:
-                right.add("%.2f%% " % (p * 100), termbox.WHITE, termbox.BLACK)
+                right.add("%.0f%% " % (p * 100), termbox.WHITE, termbox.BLACK)
         left.set_bold()
         right.set_bold()
 

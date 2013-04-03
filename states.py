@@ -154,10 +154,6 @@ class PlaylistState(State):
         self.ui.set_main(self.ui.playlist)
         self.ui.show_top(self.ui.playlist_bar)
 
-#        if self.search.active:
-#            self.ui.search.set_search(self.search)
-#            self.ui.search.show()
-
 
 class CommandState(State):
 
@@ -338,7 +334,7 @@ class BrowserState(State):
             "/": (ChangeStateCommand(self), ("search",
                 {"search": self.search})),
             "f": (ChangeStateCommand(self), ("find",
-                { "list": self.browser }))
+                {"list": self.browser}))
         })
         self.bindings.add_key_list({
             termbox.KEY_ENTER: (BrowserEnterCommand(res), ()),
@@ -380,10 +376,10 @@ class HelpState(State):
         res = ResourceTuple(self.mpd, self.status, self.ui, self.browser)
 
         self.bindings.add_ch_list({
-            "j": (MainTextSetStartCommand(res), (1, True )),
-            "k": (MainTextSetStartCommand(res), (-1, True )),
-            "g": (MainTextSetStartCommand(res), (0, False )),
-            "G": (MainTextSetStartCommand(res), (sys.maxsize, False )),
+            "j": (MainTextSetStartCommand(res), (1, True)),
+            "k": (MainTextSetStartCommand(res), (-1, True)),
+            "g": (MainTextSetStartCommand(res), (0, False)),
+            "G": (MainTextSetStartCommand(res), (sys.maxsize, False)),
         })
         self.bindings.add_key_list({
             termbox.KEY_ARROW_DOWN: (MainTextSetStartCommand(res), (1, True)),

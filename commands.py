@@ -112,15 +112,14 @@ class SeekCurPercentageCommand(ResCommand):
         if len(args) == 0:
             raise MissingArgException("requires one argument")
         try:
-            f = max(0.0, float(args[0]))
-            f = min(f, 1.0)
-
+            f = min(max(0.0, float(args[0])), 1.0)
             if self.status.current:
                 self.mpd.seekcur(str(int(f * self.status.current.time)))
         except ValueError:
             raise WrongArgException(args[0], "expected number")
         except CommandError:
-            raise CommandExecutionError("Couldn't execute 'seekcur_per' command")
+            raise CommandExecutionError("Couldn't execute 'seekcur_per " +
+                    "command")
 
 
 #### Playback options commands ####

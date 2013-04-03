@@ -13,6 +13,7 @@ from ui import *
 
 from sys import maxsize
 
+
 class MainComponent(Component):
 
     def __init__(self, tb, islist=False):

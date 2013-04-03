@@ -175,7 +175,7 @@ class LinkNode(BrowserNode):
 
     def __init__(self, mpd, parent, path, name=None):
         super(LinkNode, self).__init__(mpd, parent, "link")
-        self.name = name if "name" != None else path.name()
+        self.name = name if name != None else path.name()
         self.path = path
 
     def __str__(self):

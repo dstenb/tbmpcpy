@@ -187,10 +187,10 @@ class TextComponent(MainComponent):
     def _handle_resize(self):
         self._fix_bounds()
 
-    def _format(self, i, y, p):
+    def _format(self, item, y, p, numw):
         f = Format()
-        f.add("%i " % p, termbox.YELLOW, termbox.BLACK)
-        f.add(i, termbox.WHITE, termbox.BLACK)
+        f.add(str(p + 1).rjust(numw), termbox.YELLOW, termbox.BLACK)
+        f.add(" %s" % item, termbox.WHITE, termbox.BLACK)
         return f
 
     def _format_bar(self):
@@ -213,10 +213,13 @@ class TextComponent(MainComponent):
 
     def draw(self):
         length = len(self.tlist)
+        nw = 0
+        if length > 0:
+            nw = int(math.floor(math.log10(length))) + 2
         empty = Format("".ljust(self.w))
         for y in xrange(self._text_height()):
             p = y + self.start
-            f = self._format(self.tlist[p], y, p) if p < length else empty
+            f = self._format(self.tlist[p], y, p, nw) if p < length else empty
             self.change_cells_format(0, y, f)
         if self.show_bar:
             left, right = self._format_bar()

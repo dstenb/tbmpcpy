@@ -27,6 +27,7 @@ class UI(VerticalLayout):
 
     def __init__(self, termbox, status, msg, browser):
         super(UI, self).__init__(termbox)
+        self.set_dim(0, 0, termbox.width(), termbox.height())
 
         def create(name, cls, show, *args):
             o = cls(*args)

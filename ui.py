@@ -144,7 +144,6 @@ class VerticalLayout(Component, ComponentListener):
     def __init__(self, tb):
         super(VerticalLayout, self).__init__(tb)
         self.set_pref_dim(-1, -1)
-        self.set_dim(0, 0, tb.width(), tb.height())
         self.top = []
         self.main = None
         self.bottom = []
